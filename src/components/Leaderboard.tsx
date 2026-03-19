@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PlayerScore, TeamScore, calculateGamePoints } from "@/lib/scoring";
+import { PlayerScore, TeamScore, calculateGamePoints, formatPts } from "@/lib/scoring";
 import { GameResult, ROUND_NAMES } from "@/data/teams";
 import { calculateMaxPossible, MaxPossibleResult } from "@/lib/maxPossible";
 
@@ -198,7 +198,7 @@ function InlineTeamCard({ team, results }: { team: TeamScore; results: GameResul
           <span className="text-xs text-gray-400">{team.region}</span>
         </div>
         <span className="text-sm font-bold text-gray-900">
-          {team.totalPoints}pts
+          {formatPts(team.totalPoints)}
         </span>
       </div>
 
@@ -209,9 +209,9 @@ function InlineTeamCard({ team, results }: { team: TeamScore; results: GameResul
             const { basePoints, upsetBonus, totalPoints } = calculateGamePoints(win.round, win.winner, win.loser);
             return (
               <div key={`${win.round}-${win.loser}`} className="text-xs text-gray-500 pl-5">
-                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {basePoints}pt{basePoints !== 1 ? "s" : ""}
+                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {formatPts(basePoints)}
                 {upsetBonus > 0 && <span className="text-[#E8590C]"> + {upsetBonus} upset</span>}
-                {" = "}<span className="font-semibold text-gray-700">{totalPoints}pts</span>
+                {" = "}<span className="font-semibold text-gray-700">{formatPts(totalPoints)}</span>
               </div>
             );
           })}

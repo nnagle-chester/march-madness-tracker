@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PlayerScore } from "@/lib/scoring";
 import { ROUND_NAMES, GameResult } from "@/data/teams";
-import { calculateGamePoints } from "@/lib/scoring";
+import { calculateGamePoints, formatPts } from "@/lib/scoring";
 
 interface RoundBreakdownProps {
   playerScores: PlayerScore[];
@@ -50,7 +50,7 @@ function CellDetail({ playerName, round, results, onClose }: {
                 <span className="text-gray-400"> def. </span>
                 <span>{r.loser}</span>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {basePoints}pt base{upsetBonus > 0 && ` + ${upsetBonus} upset`} = {totalPoints}pts
+                  {formatPts(basePoints)} base{upsetBonus > 0 && ` + ${upsetBonus} upset`} = {formatPts(totalPoints)}
                 </div>
               </div>
             );

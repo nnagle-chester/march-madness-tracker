@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { GameResult } from "@/data/teams";
+import { formatPts } from "@/lib/scoring";
 import { findCinderella } from "@/lib/cinderella";
 
 interface CinderellaTrackerProps {
@@ -60,11 +61,11 @@ export default function CinderellaTracker({ results }: CinderellaTrackerProps) {
               className="text-xs text-gray-600"
             >
               <span className="font-medium text-gray-900">{win.roundName}:</span>{" "}
-              Beat ({win.opponentSeed}) {win.opponent} — {win.basePoints}pt
+              Beat ({win.opponentSeed}) {win.opponent} — {formatPts(win.basePoints)}
               {win.upsetBonus > 0 && (
                 <span className="text-[#E8590C]"> + {win.upsetBonus} upset bonus</span>
               )}
-              {" = "}{win.totalPoints}pts
+              {" = "}{formatPts(win.totalPoints)}
             </div>
           ))}
         </div>

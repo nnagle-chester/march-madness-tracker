@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { GameResult, PLAYER_COLORS } from "@/data/teams";
+import { formatPts } from "@/lib/scoring";
 import { generateFeed, FeedItem } from "@/lib/eliminationFeed";
 
 interface EliminationFeedProps {
@@ -70,7 +71,7 @@ function FeedRow({ item }: { item: FeedItem }) {
             </span>
           )}
           {!isElimination && item.points > 0 && (
-            <span className="text-xs font-medium text-green-600">+{item.points}pts</span>
+            <span className="text-xs font-medium text-green-600">+{formatPts(item.points)}</span>
           )}
         </div>
       </div>

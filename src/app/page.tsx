@@ -54,7 +54,7 @@ export default function Home() {
           </h1>
           <ScoringTooltip />
         </div>
-        <p className="text-sm text-gray-500 mt-1">March Madness 2025 Pool Tracker</p>
+        <p className="text-sm text-gray-500 mt-1">March Madness 2026 Pool Tracker</p>
         {lastUpdated && (
           <p className="text-xs text-gray-400 mt-1">
             Last updated: {new Date(lastUpdated).toLocaleTimeString()}

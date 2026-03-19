@@ -244,11 +244,11 @@ function TeamLine({
       className={`flex items-center gap-1 px-1.5 py-0.5 text-[11px] leading-tight ${
         mirrored ? "flex-row-reverse" : ""
       } ${
-        isLoser ? "opacity-35 line-through" : isWinner ? "font-semibold" : isTBD ? "opacity-30" : ""
+        isLoser ? "opacity-35 line-through" : isWinner ? "font-semibold" : isTBD ? "text-gray-300 italic" : ""
       } ${isLive ? "live-pulse" : ""}`}
     >
       <div
-        className="w-1.5 h-1.5 rounded-full shrink-0"
+        className="w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: color }}
       />
       <span className="text-gray-400 w-3 text-[10px]" style={{ textAlign: mirrored ? "right" : "left" }}>
@@ -277,6 +277,7 @@ function GameCell({
 }) {
   const isTopWinner = matchup.winner === matchup.topTeam;
   const isBottomWinner = matchup.winner === matchup.bottomTeam;
+  const isTBDGame = matchup.topTeam === "TBD" && matchup.bottomTeam === "TBD";
 
   return (
     <button
@@ -284,6 +285,8 @@ function GameCell({
       className={`w-full bg-white border rounded overflow-hidden hover:shadow-md transition-all text-left ${
         matchup.isLive
           ? "border-red-300 shadow-[0_0_6px_rgba(239,68,68,0.1)]"
+          : isTBDGame
+          ? "border-dashed border-gray-200 bg-gray-50/50"
           : "border-gray-200"
       }`}
       style={{ minWidth: "130px", maxWidth: "180px" }}
@@ -461,7 +464,7 @@ function RegionQuadrant({
   const displayLabels = mirrored ? [...roundLabels].reverse() : roundLabels;
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-w-0">
       <h3 className={`text-sm font-bold text-gray-900 mb-2 flex items-center gap-1.5 ${mirrored ? "justify-end" : ""}`}>
         <span className="w-1 h-4 bg-[#E8590C] rounded-full" />
         {region.name}
@@ -679,7 +682,7 @@ export default function BracketView({ results, liveGames, allGames }: BracketVie
       <div className="overflow-x-auto pb-4">
         <div style={{ minWidth: "1200px" }}>
           {/* Top row: East (L→R) | West (R→L mirrored) */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-nowrap">
             <RegionQuadrant
               region={REGIONS[0]}
               results={results}
@@ -706,7 +709,7 @@ export default function BracketView({ results, liveGames, allGames }: BracketVie
           </div>
 
           {/* Bottom row: South (L→R) | Midwest (R→L mirrored) */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-nowrap">
             <RegionQuadrant
               region={REGIONS[1]}
               results={results}

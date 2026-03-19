@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LiveGame } from "@/lib/espn";
 import { ROUND_POINTS, PLAYER_COLORS, getTeamOwner, getTeamInfo } from "@/data/teams";
+import { formatPts } from "@/lib/scoring";
 
 interface LiveBannerProps {
   liveGames: LiveGame[];
@@ -36,14 +37,14 @@ export default function LiveBanner({ liveGames }: LiveBannerProps) {
   if (team1Owner && team1Info && team2Info) {
     const bonus = team1Info.seed > team2Info.seed ? team1Info.seed - team2Info.seed : 0;
     const total = basePoints + bonus;
-    stakesMessage = `If ${game.team1} wins, ${team1Owner} gains ${total}pts`;
+    stakesMessage = `If ${game.team1} wins, ${team1Owner} gains ${formatPts(total)}`;
   }
   if (team2Owner && team1Info && team2Info) {
     const bonus = team2Info.seed > team1Info.seed ? team2Info.seed - team1Info.seed : 0;
     const total = basePoints + bonus;
     if (stakesMessage) stakesMessage += " | ";
     else stakesMessage = "";
-    stakesMessage += `If ${game.team2} wins, ${team2Owner} gains ${total}pts`;
+    stakesMessage += `If ${game.team2} wins, ${team2Owner} gains ${formatPts(total)}`;
   }
 
   const clockDisplay =

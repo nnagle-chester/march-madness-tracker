@@ -56,6 +56,12 @@ export default function WelcomeCard() {
         </p>
 
         <p>
+          Each team earns points for every tournament win: 1pt for Round of 64, 2pts for Round of 32,
+          5pts for Sweet 16, 10pts for Elite 8, 15pts for Final Four, and 25pts for the Championship.
+          Upsets earn bonus points equal to the seed difference.
+        </p>
+
+        <p>
           The stakes are simple: the winner takes home cold hard cash and eternal bragging rights.
           The loser? You&apos;re buying pitchers at Pennies for the group. No exceptions. No excuses.
         </p>

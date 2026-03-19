@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PlayerScore, TeamScore } from "@/lib/scoring";
 import { ROUND_NAMES, ROUND_POINTS, GameResult, getTeamInfo } from "@/data/teams";
-import { calculateGamePoints } from "@/lib/scoring";
+import { calculateGamePoints, formatPts } from "@/lib/scoring";
 
 interface PlayerRosterProps {
   player: PlayerScore;
@@ -96,9 +96,9 @@ function TeamCard({ team, playerColor, results }: { team: TeamScore; playerColor
             const { basePoints, upsetBonus, totalPoints } = calculateGamePoints(win.round, win.winner, win.loser);
             return (
               <div key={`${win.round}-${win.loser}`} className="text-xs text-gray-500 pl-6">
-                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {basePoints}pt{basePoints !== 1 ? "s" : ""}
+                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {formatPts(basePoints)}
                 {upsetBonus > 0 && <span className="text-[#E8590C]"> + {upsetBonus} upset bonus</span>}
-                {" = "}<span className="font-semibold text-gray-700">{totalPoints}pts</span>
+                {" = "}<span className="font-semibold text-gray-700">{formatPts(totalPoints)}</span>
               </div>
             );
           })}

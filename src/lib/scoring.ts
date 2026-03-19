@@ -167,4 +167,8 @@ export function getRoundProgress(results: GameResult[]): {
   return { currentRound, gamesCompleted, totalGamesInRound };
 }
 
+export function formatPts(n: number): string {
+  return n === 1 ? "1pt" : `${n}pts`;
+}
+
 export { getTeamOwner };

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ROUND_NAMES, ROUND_POINTS } from "@/data/teams";
+import { formatPts } from "@/lib/scoring";
 
 export default function ScoringTooltip() {
   const [open, setOpen] = useState(false);
@@ -58,7 +59,7 @@ export default function ScoringTooltip() {
               points equal to the seed difference.
             </p>
             <p className="text-gray-500">
-              Example: 12-seed beats 5-seed = {ROUND_POINTS[1]}pt base + 7 upset bonus = {ROUND_POINTS[1] + 7}pts
+              Example: 12-seed beats 5-seed = {formatPts(ROUND_POINTS[1])} base + 7 upset bonus = {formatPts(ROUND_POINTS[1] + 7)}
             </p>
           </div>
         </div>
