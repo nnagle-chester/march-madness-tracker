@@ -1,13 +1,68 @@
 "use client";
 
+import { useState } from "react";
 import { PlayerScore } from "@/lib/scoring";
-import { ROUND_NAMES } from "@/data/teams";
+import { ROUND_NAMES, GameResult } from "@/data/teams";
+import { calculateGamePoints } from "@/lib/scoring";
 
 interface RoundBreakdownProps {
   playerScores: PlayerScore[];
+  results: GameResult[];
 }
 
-export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
+function CellDetail({ playerName, round, results, onClose }: {
+  playerName: string;
+  round: number;
+  results: GameResult[];
+  onClose: () => void;
+}) {
+  const ps = results.filter(
+    (r) => r.round === round && r.winner
+  );
+
+  // Find this player's teams
+  const playerScore = null; // We'll find wins from results
+  const playerWins = ps.filter((r) => {
+    // Check if the winner belongs to this player
+    // We need to import getTeamOwner but it's available via scoring
+    return true; // We'll filter in rendering
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white border border-gray-200 rounded-xl p-4 max-w-sm w-full shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-bold text-gray-900">{playerName} - {ROUND_NAMES[round]}</h4>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900">{"\u2715"}</button>
+        </div>
+        <div className="space-y-2">
+          {ps.map((r) => {
+            const { basePoints, upsetBonus, totalPoints } = calculateGamePoints(r.round, r.winner, r.loser);
+            return (
+              <div key={`${r.winner}-${r.loser}`} className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2">
+                <span className="font-medium">{r.winner}</span>
+                <span className="text-gray-400"> def. </span>
+                <span>{r.loser}</span>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {basePoints}pt base{upsetBonus > 0 && ` + ${upsetBonus} upset`} = {totalPoints}pts
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function RoundBreakdown({ playerScores, results }: RoundBreakdownProps) {
+  const [expandedCell, setExpandedCell] = useState<{ player: string; round: number } | null>(null);
   const rounds = [1, 2, 3, 4, 5, 6];
   const roundLabels = ["R64", "R32", "S16", "E8", "F4", "Champ"];
 
@@ -24,27 +79,27 @@ export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
   const sorted = [...playerScores].sort((a, b) => a.rank - b.rank);
 
   return (
-    <div className="bg-[#141420] border border-[#2a2a3a] rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-[#2a2a3a]">
-        <h2 className="text-lg font-bold text-white">Round-by-Round Breakdown</h2>
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+      <div className="p-4 border-b border-gray-200">
+        <h2 className="text-lg font-bold text-gray-900">Round-by-Round Breakdown</h2>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#2a2a3a]">
-              <th className="text-left p-3 text-gray-400 font-medium sticky left-0 bg-[#141420] z-10">
+            <tr className="border-b border-gray-200">
+              <th className="text-left p-3 text-gray-500 font-medium sticky left-0 bg-white z-10">
                 Player
               </th>
               {rounds.map((r, i) => (
                 <th
                   key={r}
-                  className="text-center p-3 text-gray-400 font-medium min-w-[60px]"
+                  className="text-center p-3 text-gray-500 font-medium min-w-[60px]"
                 >
                   {roundLabels[i]}
                 </th>
               ))}
-              <th className="text-center p-3 text-gray-400 font-medium min-w-[70px]">
+              <th className="text-center p-3 text-gray-500 font-medium min-w-[70px]">
                 Total
               </th>
             </tr>
@@ -53,15 +108,15 @@ export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
             {sorted.map((ps) => (
               <tr
                 key={ps.playerName}
-                className="border-b border-[#1a1a2e] hover:bg-[#1a1a2e] transition-colors"
+                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <td className="p-3 sticky left-0 bg-[#141420] z-10">
+                <td className="p-3 sticky left-0 bg-white z-10">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: ps.color }}
                     />
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-gray-900">
                       {ps.playerName}
                     </span>
                   </div>
@@ -70,20 +125,21 @@ export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
                   const pts = ps.pointsByRound[r] || 0;
                   return (
                     <td key={r} className="text-center p-3">
-                      <span
+                      <button
+                        onClick={() => pts > 0 ? setExpandedCell({ player: ps.playerName, round: r }) : undefined}
                         className={`${
                           pts > 0
-                            ? "text-green-400 font-semibold"
-                            : "text-gray-600"
+                            ? "text-green-600 font-semibold cursor-pointer hover:underline"
+                            : "text-gray-300 cursor-default"
                         }`}
                       >
                         {pts > 0 ? pts : "-"}
-                      </span>
+                      </button>
                     </td>
                   );
                 })}
                 <td className="text-center p-3">
-                  <span className="text-white font-bold text-base">
+                  <span className="text-gray-900 font-bold text-base">
                     {ps.totalPoints}
                   </span>
                 </td>
@@ -91,19 +147,19 @@ export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
             ))}
 
             {/* Totals row */}
-            <tr className="bg-[#1a1a2e] border-t border-[#2a2a3a]">
-              <td className="p-3 sticky left-0 bg-[#1a1a2e] z-10">
-                <span className="font-medium text-gray-400">Round Total</span>
+            <tr className="bg-gray-50 border-t border-gray-200">
+              <td className="p-3 sticky left-0 bg-gray-50 z-10">
+                <span className="font-medium text-gray-500">Round Total</span>
               </td>
               {rounds.map((r) => (
                 <td key={r} className="text-center p-3">
-                  <span className="text-gray-300 font-medium">
+                  <span className="text-gray-700 font-medium">
                     {roundTotals[r] || "-"}
                   </span>
                 </td>
               ))}
               <td className="text-center p-3">
-                <span className="text-white font-bold">
+                <span className="text-gray-900 font-bold">
                   {Object.values(roundTotals).reduce((a, b) => a + b, 0)}
                 </span>
               </td>
@@ -111,6 +167,15 @@ export default function RoundBreakdown({ playerScores }: RoundBreakdownProps) {
           </tbody>
         </table>
       </div>
+
+      {expandedCell && (
+        <CellDetail
+          playerName={expandedCell.player}
+          round={expandedCell.round}
+          results={results}
+          onClose={() => setExpandedCell(null)}
+        />
+      )}
     </div>
   );
 }

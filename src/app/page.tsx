@@ -5,19 +5,24 @@ import { useScores } from "@/lib/useScores";
 import Nav from "@/components/Nav";
 import RoundProgressBar from "@/components/RoundProgressBar";
 import Leaderboard from "@/components/Leaderboard";
-import PlayerRoster from "@/components/PlayerRoster";
 import BracketView from "@/components/BracketView";
 import RoundBreakdown from "@/components/RoundBreakdown";
+import WelcomeCard from "@/components/WelcomeCard";
+import LiveBanner from "@/components/LiveBanner";
+import GamesToday from "@/components/GamesToday";
+import CinderellaTracker from "@/components/CinderellaTracker";
+import EliminationFeed from "@/components/EliminationFeed";
+import ScoringTooltip from "@/components/ScoringTooltip";
 
 type View = "leaderboard" | "bracket" | "rounds";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>("leaderboard");
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
 
   const {
     results,
     liveGames,
+    allGames,
     playerScores,
     roundProgress,
     lastUpdated,
@@ -25,24 +30,12 @@ export default function Home() {
     error,
   } = useScores();
 
-  const handlePlayerClick = (playerName: string) => {
-    setSelectedPlayer(playerName);
-  };
-
-  const handleBack = () => {
-    setSelectedPlayer(null);
-  };
-
-  const selectedPlayerData = selectedPlayer
-    ? playerScores.find((ps) => ps.playerName === selectedPlayer)
-    : null;
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-gray-400">Loading tournament data...</p>
+          <div className="inline-block w-8 h-8 border-2 border-[#E8590C] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-gray-500">Loading tournament data...</p>
         </div>
       </div>
     );
@@ -50,18 +43,27 @@ export default function Home() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-6 pb-20">
+      {/* Welcome Card */}
+      <WelcomeCard />
+
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
-          Brett&apos;s Angels
-        </h1>
-        <p className="text-sm text-gray-500">March Madness 2025 Pool Tracker</p>
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
+            Brett&apos;s Angels
+          </h1>
+          <ScoringTooltip />
+        </div>
+        <p className="text-sm text-gray-500 mt-1">March Madness 2025 Pool Tracker</p>
         {lastUpdated && (
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-gray-400 mt-1">
             Last updated: {new Date(lastUpdated).toLocaleTimeString()}
           </p>
         )}
       </div>
+
+      {/* Live Banner */}
+      <LiveBanner liveGames={liveGames} />
 
       {/* Round Progress */}
       <RoundProgressBar
@@ -72,37 +74,37 @@ export default function Home() {
       />
 
       {/* Navigation */}
-      <Nav currentView={currentView} onViewChange={(v) => {
-        setCurrentView(v);
-        setSelectedPlayer(null);
-      }} />
+      <Nav currentView={currentView} onViewChange={(v) => setCurrentView(v)} />
 
       {/* Error notice */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm mb-4">
           {error} — showing cached data
         </div>
       )}
 
       {/* Content */}
-      {currentView === "leaderboard" && !selectedPlayerData && (
-        <Leaderboard
-          playerScores={playerScores}
-          currentRound={roundProgress.currentRound}
-          onPlayerClick={handlePlayerClick}
-        />
-      )}
-
-      {currentView === "leaderboard" && selectedPlayerData && (
-        <PlayerRoster player={selectedPlayerData} onBack={handleBack} />
+      {currentView === "leaderboard" && (
+        <>
+          <Leaderboard
+            playerScores={playerScores}
+            currentRound={roundProgress.currentRound}
+            results={results}
+          />
+          <GamesToday allGames={allGames} />
+          <div className="mt-4 space-y-4">
+            <CinderellaTracker results={results} />
+            <EliminationFeed results={results} />
+          </div>
+        </>
       )}
 
       {currentView === "bracket" && (
-        <BracketView results={results} liveGames={liveGames} />
+        <BracketView results={results} liveGames={liveGames} allGames={allGames} />
       )}
 
       {currentView === "rounds" && (
-        <RoundBreakdown playerScores={playerScores} />
+        <RoundBreakdown playerScores={playerScores} results={results} />
       )}
     </main>
   );

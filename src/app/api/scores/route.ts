@@ -40,6 +40,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     results: deduped,
     liveGames: espnGames.filter((g) => g.isLive),
+    allGames: espnGames,
     lastUpdated: new Date().toISOString(),
   });
 }

@@ -102,19 +102,19 @@ export default function AdminPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-2">Admin - Manual Score Entry</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin - Manual Score Entry</h1>
       <p className="text-sm text-gray-500 mb-6">
         Use this page to manually enter game results when the ESPN API doesn&apos;t cover a game.
       </p>
 
-      <form onSubmit={handleSubmit} className="bg-[#141420] border border-[#2a2a3a] rounded-xl p-6 mb-8">
+      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 mb-8 card-shadow">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Round</label>
+            <label className="block text-sm text-gray-500 mb-1">Round</label>
             <select
               value={round}
               onChange={(e) => setRound(e.target.value)}
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             >
               {Object.entries(ROUND_NAMES).map(([key, name]) => (
                 <option key={key} value={key}>
@@ -124,11 +124,11 @@ export default function AdminPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Region</label>
+            <label className="block text-sm text-gray-500 mb-1">Region</label>
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             >
               {REGIONS.map((r) => (
                 <option key={r.name} value={r.name}>
@@ -143,12 +143,12 @@ export default function AdminPage() {
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Winner</label>
+            <label className="block text-sm text-gray-500 mb-1">Winner</label>
             <select
               value={winner}
               onChange={(e) => setWinner(e.target.value)}
               required
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             >
               <option value="">Select winner...</option>
               {ALL_TEAMS.map((t) => (
@@ -159,12 +159,12 @@ export default function AdminPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Loser</label>
+            <label className="block text-sm text-gray-500 mb-1">Loser</label>
             <select
               value={loser}
               onChange={(e) => setLoser(e.target.value)}
               required
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             >
               <option value="">Select loser...</option>
               {ALL_TEAMS.map((t) => (
@@ -178,30 +178,30 @@ export default function AdminPage() {
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Winner Score (optional)</label>
+            <label className="block text-sm text-gray-500 mb-1">Winner Score (optional)</label>
             <input
               type="number"
               value={winnerScore}
               onChange={(e) => setWinnerScore(e.target.value)}
               placeholder="e.g. 78"
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Loser Score (optional)</label>
+            <label className="block text-sm text-gray-500 mb-1">Loser Score (optional)</label>
             <input
               type="number"
               value={loserScore}
               onChange={(e) => setLoserScore(e.target.value)}
               placeholder="e.g. 65"
-              className="w-full bg-[#1a1a2e] border border-[#2a2a3a] rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm"
             />
           </div>
         </div>
 
         <button
           type="submit"
-          className="w-full bg-orange-500 hover:bg-orange-600 text-black font-semibold py-2.5 rounded-lg transition-colors"
+          className="w-full bg-[#E8590C] hover:bg-[#E8590C]/90 text-white font-semibold py-2.5 rounded-lg transition-colors"
         >
           Save Game Result
         </button>
@@ -210,8 +210,8 @@ export default function AdminPage() {
           <p
             className={`mt-3 text-sm text-center ${
               status.includes("Error") || status.includes("Failed")
-                ? "text-red-400"
-                : "text-green-400"
+                ? "text-red-600"
+                : "text-green-600"
             }`}
           >
             {status}
@@ -220,8 +220,8 @@ export default function AdminPage() {
       </form>
 
       {/* Existing results */}
-      <div className="bg-[#141420] border border-[#2a2a3a] rounded-xl p-6">
-        <h2 className="text-lg font-bold text-white mb-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">
           Current Results ({results.length})
         </h2>
         {results.length === 0 ? (
@@ -233,15 +233,15 @@ export default function AdminPage() {
             {results.map((r, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3 bg-[#1a1a2e] rounded-lg text-sm"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
               >
                 <div>
                   <span className="text-gray-500">R{r.round}</span>
-                  <span className="text-white font-medium ml-2">{r.winner}</span>
-                  <span className="text-gray-600 mx-1">def.</span>
-                  <span className="text-gray-400">{r.loser}</span>
+                  <span className="text-gray-900 font-medium ml-2">{r.winner}</span>
+                  <span className="text-gray-400 mx-1">def.</span>
+                  <span className="text-gray-500">{r.loser}</span>
                   {r.winnerScore && r.loserScore && (
-                    <span className="text-gray-600 ml-2">
+                    <span className="text-gray-400 ml-2">
                       ({r.winnerScore}-{r.loserScore})
                     </span>
                   )}
@@ -249,7 +249,7 @@ export default function AdminPage() {
                 {r.gameId?.startsWith("manual") && (
                   <button
                     onClick={() => handleDelete(r)}
-                    className="text-red-500 hover:text-red-400 text-xs"
+                    className="text-red-600 hover:text-red-500 text-xs"
                   >
                     Delete
                   </button>
@@ -261,8 +261,8 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-6 text-center">
-        <a href="/" className="text-orange-400 hover:text-orange-300 text-sm">
-          ← Back to Pool Tracker
+        <a href="/" className="text-[#E8590C] hover:text-[#E8590C]/80 text-sm">
+          {"\u2190"} Back to Pool Tracker
         </a>
       </div>
     </main>

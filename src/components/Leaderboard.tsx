@@ -1,106 +1,245 @@
 "use client";
 
-import { PlayerScore } from "@/lib/scoring";
-import { ROUND_NAMES } from "@/data/teams";
+import { useMemo, useState } from "react";
+import { PlayerScore, TeamScore, calculateGamePoints } from "@/lib/scoring";
+import { GameResult, ROUND_NAMES } from "@/data/teams";
+import { calculateMaxPossible, MaxPossibleResult } from "@/lib/maxPossible";
 
 interface LeaderboardProps {
   playerScores: PlayerScore[];
   currentRound: number;
-  onPlayerClick: (playerName: string) => void;
+  results: GameResult[];
 }
 
 export default function Leaderboard({
   playerScores,
   currentRound,
-  onPlayerClick,
+  results,
 }: LeaderboardProps) {
-  const leader = playerScores[0];
+  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
+
+  const maxPossible = useMemo(
+    () => calculateMaxPossible(playerScores, results),
+    [playerScores, results]
+  );
+
+  const maxMap = useMemo(() => {
+    const m: Record<string, MaxPossibleResult> = {};
+    for (const mp of maxPossible) {
+      m[mp.playerName] = mp;
+    }
+    return m;
+  }, [maxPossible]);
 
   return (
     <div className="space-y-2">
-      <h2 className="text-lg font-bold text-white mb-4">Leaderboard</h2>
+      <h2 className="text-lg font-bold text-gray-900 mb-4">Leaderboard</h2>
       {playerScores.map((ps, idx) => {
         const isLeader = idx === 0 && ps.totalPoints > 0;
         const roundPoints = ps.pointsByRound[currentRound] || 0;
+        const mp = maxMap[ps.playerName];
+        const isExpanded = expandedPlayer === ps.playerName;
 
         return (
-          <button
-            key={ps.playerName}
-            onClick={() => onPlayerClick(ps.playerName)}
-            className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-xl border transition-all hover:scale-[1.01] hover:border-opacity-60 ${
-              isLeader
-                ? "bg-gradient-to-r from-orange-500/10 to-transparent border-orange-500/30"
-                : "bg-[#141420] border-[#2a2a3a] hover:border-[#3a3a5a]"
-            }`}
-          >
-            {/* Rank */}
+          <div key={ps.playerName}>
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                idx === 0
-                  ? "bg-orange-500 text-black"
-                  : idx === 1
-                  ? "bg-gray-400 text-black"
-                  : idx === 2
-                  ? "bg-amber-700 text-white"
-                  : "bg-[#2a2a3a] text-gray-400"
+              onClick={() => setExpandedPlayer(isExpanded ? null : ps.playerName)}
+              className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-xl border transition-all card-shadow-hover cursor-pointer ${
+                isLeader
+                  ? "bg-gradient-to-r from-[#E8590C]/5 to-white border-[#E8590C]/20 shadow-sm"
+                  : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
               }`}
             >
-              {ps.rank}
-            </div>
-
-            {/* Player color dot + name */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Rank */}
               <div
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: ps.color }}
-              />
-              <span className="font-semibold text-white truncate">
-                {ps.playerName}
-              </span>
-              {isLeader && (
-                <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">
-                  Leader
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${
+                  idx === 0
+                    ? "bg-[#E8590C] text-white"
+                    : idx === 1
+                    ? "bg-gray-400 text-white"
+                    : idx === 2
+                    ? "bg-amber-700 text-white"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {ps.rank}
+              </div>
+
+              {/* Player color dot + name */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div
+                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  style={{ backgroundColor: ps.color }}
+                />
+                <span className="font-semibold text-gray-900 truncate">
+                  {ps.playerName}
                 </span>
-              )}
+                {isLeader && (
+                  <span className="text-xs bg-[#E8590C]/5 text-[#E8590C] px-2 py-0.5 rounded-full border border-[#E8590C]/20">
+                    Leader
+                  </span>
+                )}
+                {mp && !mp.isContender && ps.totalPoints > 0 && (
+                  <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">
+                    OUT
+                  </span>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 text-right">
+                <div className="hidden sm:block">
+                  <div className="text-xs text-gray-500">This Round</div>
+                  <div className="text-sm font-medium text-gray-700">
+                    +{roundPoints}
+                  </div>
+                </div>
+                <div className="hidden sm:block">
+                  <div className="text-xs text-gray-500">Alive</div>
+                  <div className="text-sm font-medium text-green-600">
+                    {ps.teamsAlive}/8
+                  </div>
+                </div>
+                {mp && (
+                  <div className="hidden sm:block">
+                    <div className="text-xs text-gray-500">Max</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      {mp.maxPossible}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs text-gray-500">Total</div>
+                  <div className="text-lg font-bold text-gray-900">
+                    {ps.totalPoints}
+                  </div>
+                </div>
+                {/* Chevron */}
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-right">
-              <div className="hidden sm:block">
-                <div className="text-xs text-gray-500">This Round</div>
-                <div className="text-sm font-medium text-gray-300">
-                  +{roundPoints}
-                </div>
-              </div>
-              <div className="hidden sm:block">
-                <div className="text-xs text-gray-500">Alive</div>
-                <div className="text-sm font-medium text-green-400">
-                  {ps.teamsAlive}/8
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Total</div>
-                <div className="text-lg font-bold text-white">
-                  {ps.totalPoints}
-                </div>
-              </div>
-              <svg
-                className="w-4 h-4 text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-          </button>
+            {/* Inline expansion panel */}
+            {isExpanded && (
+              <InlineRoster player={ps} results={results} />
+            )}
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+function InlineRoster({ player, results }: { player: PlayerScore; results: GameResult[] }) {
+  const sortedTeams = [...player.teamScores].sort((a, b) => {
+    if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+    return b.totalPoints - a.totalPoints;
+  });
+
+  return (
+    <div className="ml-4 mr-1 mt-1 mb-2 border-l-2 border-gray-200 pl-4 space-y-2">
+      {/* Summary */}
+      <div className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="font-medium text-gray-700">{player.teamsAlive}</span> team{player.teamsAlive !== 1 ? "s" : ""} alive
+        </div>
+        <div className="text-sm text-gray-500">
+          <span className="font-bold text-gray-900">{player.totalPoints}</span> total pts
+        </div>
+      </div>
+
+      {/* Team cards */}
+      {sortedTeams.map((team) => (
+        <InlineTeamCard key={team.teamName} team={team} results={results} />
+      ))}
+    </div>
+  );
+}
+
+function InlineTeamCard({ team, results }: { team: TeamScore; results: GameResult[] }) {
+  const teamWins = results.filter((r) => r.winner === team.teamName && r.round >= 1);
+  const rounds = [1, 2, 3, 4, 5, 6];
+
+  return (
+    <div
+      className={`p-3 rounded-lg border ${
+        team.eliminated
+          ? "bg-gray-50 border-gray-100 opacity-60"
+          : "bg-white border-gray-200"
+      }`}
+    >
+      {/* Team header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {team.eliminated ? (
+            <span className="text-red-500 font-bold text-sm">{"\u2715"}</span>
+          ) : (
+            <span className="text-green-600 text-sm">{"\u25CF"}</span>
+          )}
+          <span
+            className={`font-medium text-sm ${
+              team.eliminated ? "text-gray-400 line-through" : "text-gray-900"
+            }`}
+          >
+            ({team.seed}) {team.teamName}
+          </span>
+          <span className="text-xs text-gray-400">{team.region}</span>
+        </div>
+        <span className="text-sm font-bold text-gray-900">
+          {team.totalPoints}pts
+        </span>
+      </div>
+
+      {/* Win details */}
+      {teamWins.length > 0 && (
+        <div className="mb-2 space-y-0.5">
+          {teamWins.map((win) => {
+            const { basePoints, upsetBonus, totalPoints } = calculateGamePoints(win.round, win.winner, win.loser);
+            return (
+              <div key={`${win.round}-${win.loser}`} className="text-xs text-gray-500 pl-5">
+                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {basePoints}pt{basePoints !== 1 ? "s" : ""}
+                {upsetBonus > 0 && <span className="text-[#E8590C]"> + {upsetBonus} upset</span>}
+                {" = "}<span className="font-semibold text-gray-700">{totalPoints}pts</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Round breakdown */}
+      <div className="grid grid-cols-6 gap-1">
+        {rounds.map((r) => {
+          const pts = team.pointsByRound[r] || 0;
+          return (
+            <div key={r} className="text-center">
+              <div className="text-[10px] text-gray-400 mb-0.5">R{r}</div>
+              <div
+                className={`text-xs font-medium py-0.5 rounded ${
+                  pts > 0
+                    ? "bg-green-50 text-green-600"
+                    : team.eliminated && r >= (team.eliminatedRound || 99)
+                    ? "bg-red-50 text-red-300"
+                    : "bg-gray-50 text-gray-400"
+                }`}
+              >
+                {pts > 0 ? `+${pts}` : "-"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -9,21 +9,21 @@ interface NavProps {
 
 export default function Nav({ currentView, onViewChange }: NavProps) {
   const tabs: { id: View; label: string; icon: string }[] = [
-    { id: "leaderboard", label: "Standings", icon: "🏆" },
-    { id: "bracket", label: "Bracket", icon: "📊" },
-    { id: "rounds", label: "Rounds", icon: "📋" },
+    { id: "leaderboard", label: "Standings", icon: "\u{1F3C6}" },
+    { id: "bracket", label: "Bracket", icon: "\u{1F4CA}" },
+    { id: "rounds", label: "Rounds", icon: "\u{1F4CB}" },
   ];
 
   return (
-    <nav className="flex gap-1 bg-[#141420] border border-[#2a2a3a] rounded-xl p-1 mb-6">
+    <nav className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 mb-6 card-shadow">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onViewChange(tab.id)}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
             currentView === tab.id
-              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-              : "text-gray-500 hover:text-gray-300 hover:bg-[#1a1a2e]"
+              ? "bg-[#E8590C]/5 text-[#E8590C] border border-[#E8590C]/20"
+              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
           }`}
         >
           <span className="text-base">{tab.icon}</span>

@@ -120,6 +120,7 @@ interface ESPNCompetition {
 
 interface ESPNEvent {
   id: string;
+  date: string;
   competitions: ESPNCompetition[];
   season: {
     year: number;
@@ -145,6 +146,7 @@ export interface LiveGame {
   winner?: string;
   loser?: string;
   round?: number;
+  startTime?: string;
 }
 
 // Returns 0 for First Four (no points), 1-6 for tournament rounds
@@ -214,6 +216,7 @@ export async function fetchESPNScores(dates?: string): Promise<LiveGame[]> {
           clock: competition.status.displayClock,
           period: competition.status.period,
           round,
+          startTime: event.date,
         };
 
         if (isComplete) {

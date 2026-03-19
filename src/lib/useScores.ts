@@ -8,12 +8,14 @@ import { calculateScores, PlayerScore, getRoundProgress } from "@/lib/scoring";
 interface ScoresData {
   results: GameResult[];
   liveGames: LiveGame[];
+  allGames: LiveGame[];
   lastUpdated: string | null;
 }
 
 export function useScores() {
   const [results, setResults] = useState<GameResult[]>([]);
   const [liveGames, setLiveGames] = useState<LiveGame[]>([]);
+  const [allGames, setAllGames] = useState<LiveGame[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export function useScores() {
       const data: ScoresData = await res.json();
       setResults(data.results);
       setLiveGames(data.liveGames);
+      setAllGames(data.allGames || []);
       setLastUpdated(data.lastUpdated);
       setError(null);
     } catch (err) {
@@ -51,6 +54,7 @@ export function useScores() {
   return {
     results,
     liveGames,
+    allGames,
     playerScores,
     roundProgress,
     lastUpdated,
