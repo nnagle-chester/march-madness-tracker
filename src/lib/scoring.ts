@@ -57,11 +57,14 @@ export function calculateGamePoints(
 }
 
 export function calculateScores(results: GameResult[]): PlayerScore[] {
-  // Track eliminated teams
+  // Filter out First Four / round 0 games — they don't count for scoring
+  const scoringResults = results.filter((r) => r.round >= 1);
+
+  // Track eliminated teams (only from actual tournament rounds)
   const eliminatedTeams = new Set<string>();
   const eliminatedRound: Record<string, number> = {};
 
-  for (const result of results) {
+  for (const result of scoringResults) {
     if (result.loser) {
       eliminatedTeams.add(result.loser);
       eliminatedRound[result.loser] = result.round;
@@ -75,7 +78,7 @@ export function calculateScores(results: GameResult[]): PlayerScore[] {
       let totalPoints = 0;
 
       // Calculate points for each game this team won
-      for (const result of results) {
+      for (const result of scoringResults) {
         if (result.winner === team.name) {
           const { totalPoints: gamePoints } = calculateGamePoints(
             result.round,
@@ -137,8 +140,10 @@ export function calculateScores(results: GameResult[]): PlayerScore[] {
 }
 
 export function getCurrentRound(results: GameResult[]): number {
-  if (results.length === 0) return 1;
-  return Math.max(...results.map((r) => r.round));
+  // Only consider valid tournament rounds (1-6), ignore any round 0 / First Four
+  const validRounds = results.filter((r) => r.round >= 1).map((r) => r.round);
+  if (validRounds.length === 0) return 1;
+  return Math.max(...validRounds);
 }
 
 export function getRoundProgress(results: GameResult[]): {

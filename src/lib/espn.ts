@@ -147,14 +147,19 @@ export interface LiveGame {
   round?: number;
 }
 
+// Returns 0 for First Four (no points), 1-6 for tournament rounds
 function detectRound(notes?: Array<{ headline: string }>): number {
   if (!notes || notes.length === 0) return 1;
   const headline = notes[0].headline.toLowerCase();
-  if (headline.includes("championship") || headline.includes("national championship")) return 6;
+  // First Four / play-in games get round 0 — excluded from scoring
+  if (headline.includes("first four")) return 0;
+  // Check later rounds before earlier ones to avoid substring collisions
+  if (headline.includes("national championship")) return 6;
   if (headline.includes("final four") || headline.includes("semifinal")) return 5;
-  if (headline.includes("elite") || headline.includes("elite eight") || headline.includes("elite 8")) return 4;
-  if (headline.includes("sweet") || headline.includes("sweet sixteen") || headline.includes("sweet 16")) return 3;
+  if (headline.includes("elite eight") || headline.includes("elite 8")) return 4;
+  if (headline.includes("sweet sixteen") || headline.includes("sweet 16")) return 3;
   if (headline.includes("second round") || headline.includes("round of 32") || headline.includes("2nd round")) return 2;
+  // "first round" or "round of 64" or unrecognized → R64
   return 1;
 }
 
@@ -225,6 +230,9 @@ export async function fetchESPNScores(dates?: string): Promise<LiveGame[]> {
           }
         }
 
+        // Skip First Four games entirely (round 0)
+        if (round === 0) continue;
+
         games.push(game);
       }
     }
@@ -238,9 +246,9 @@ export async function fetchESPNScores(dates?: string): Promise<LiveGame[]> {
 
 export function espnGamesToResults(games: LiveGame[]): GameResult[] {
   return games
-    .filter((g) => g.isComplete && g.winner && g.loser)
+    .filter((g) => g.isComplete && g.winner && g.loser && g.round && g.round >= 1)
     .map((g) => ({
-      round: g.round || 1,
+      round: g.round!,
       winner: g.winner!,
       loser: g.loser!,
       winnerScore: g.winner === g.team1 ? g.score1 : g.score2,
