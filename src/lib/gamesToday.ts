@@ -15,14 +15,17 @@ export interface GameTodayInfo {
   statusLabel: "SCHEDULED" | "LIVE" | "FINAL";
 }
 
+/** Return YYYY-MM-DD for a Date in the user's local timezone. */
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function getGamesToday(allGames: LiveGame[]): GameTodayInfo[] {
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
+  const todayStr = toLocalDateStr(new Date());
 
   const todayGames = allGames.filter((g) => {
     if (!g.startTime) return false;
-    const gameDate = new Date(g.startTime).toISOString().slice(0, 10);
-    return gameDate === todayStr;
+    return toLocalDateStr(new Date(g.startTime)) === todayStr;
   });
 
   const enriched: GameTodayInfo[] = todayGames.map((game) => {

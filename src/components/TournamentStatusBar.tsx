@@ -16,7 +16,7 @@ export default function TournamentStatusBar({
   liveCount,
 }: TournamentStatusBarProps) {
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3 bg-[#E8590C]/8 rounded-full px-4 sm:px-6 py-2.5 mb-6">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 bg-[#E8590C]/8 rounded-full px-4 sm:px-6 py-2.5 mb-6">
       {/* Round name */}
       <span className="text-[#E8590C] font-semibold text-sm">
         {ROUND_NAMES[currentRound] || `Round ${currentRound}`}

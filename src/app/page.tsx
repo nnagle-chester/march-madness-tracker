@@ -8,7 +8,7 @@ import Leaderboard from "@/components/Leaderboard";
 import BracketView from "@/components/BracketView";
 import RoundBreakdown from "@/components/RoundBreakdown";
 import WelcomeCard from "@/components/WelcomeCard";
-import LiveBanner from "@/components/LiveBanner";
+
 import GamesToday from "@/components/GamesToday";
 import ScoringTooltip from "@/components/ScoringTooltip";
 
@@ -60,10 +60,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* 3. Live Banner */}
-      <LiveBanner liveGames={liveGames} />
-
-      {/* 4. Tournament Status Bar */}
+      {/* 3. Tournament Status Bar */}
       <TournamentStatusBar
         currentRound={roundProgress.currentRound}
         gamesCompleted={roundProgress.gamesCompleted}
