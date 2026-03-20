@@ -66,7 +66,10 @@ const TEAM_ALIAS_MAP: Record<string, string> = {
   "Tennessee State Tigers": "Tennessee State",
   "Queens Royals": "Queens",
   "Siena Saints": "Siena",
+  "Utah State Aggies": "Utah State",
   "LIU Sharks": "LIU",
+  "Long Island University Sharks": "LIU",
+  "Long Island University": "LIU",
   "Howard Bison": "Howard",
 };
 

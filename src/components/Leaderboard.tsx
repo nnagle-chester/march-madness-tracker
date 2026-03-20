@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { PlayerScore, TeamScore, calculateGamePoints, formatPts } from "@/lib/scoring";
-import { GameResult, ROUND_NAMES } from "@/data/teams";
+import { GameResult } from "@/data/teams";
+
+const SHORT_ROUND: Record<number, string> = {
+  1: "R64", 2: "R32", 3: "S16", 4: "E8", 5: "F4", 6: "NC",
+};
 import { calculateMaxPossible, MaxPossibleResult } from "@/lib/maxPossible";
 
 interface LeaderboardProps {
@@ -209,7 +213,7 @@ function InlineTeamCard({ team, results }: { team: TeamScore; results: GameResul
             const { basePoints, upsetBonus, totalPoints } = calculateGamePoints(win.round, win.winner, win.loser);
             return (
               <div key={`${win.round}-${win.loser}`} className="text-xs text-gray-500 pl-5">
-                Beat {win.loser} ({ROUND_NAMES[win.round]}) — {formatPts(basePoints)}
+                Beat {win.loser} ({SHORT_ROUND[win.round] || `R${win.round}`}) — {formatPts(basePoints)}
                 {upsetBonus > 0 && <span className="text-[#E8590C]"> + {upsetBonus} upset</span>}
                 {" = "}<span className="font-semibold text-gray-700">{formatPts(totalPoints)}</span>
               </div>

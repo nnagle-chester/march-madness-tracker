@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useScores } from "@/lib/useScores";
 import Nav from "@/components/Nav";
 import TournamentStatusBar from "@/components/TournamentStatusBar";
@@ -69,7 +69,9 @@ export default function Home() {
       />
 
       {/* 5. Games Today */}
-      <GamesToday allGames={allGames} />
+      <Suspense fallback={null}>
+        <GamesToday allGames={allGames} />
+      </Suspense>
 
       {/* 6. Tab Navigation */}
       <Nav currentView={currentView} onViewChange={(v) => setCurrentView(v)} />

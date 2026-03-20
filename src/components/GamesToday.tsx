@@ -1,91 +1,296 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { LiveGame } from "@/lib/espn";
-import { getGamesToday, GameTodayInfo } from "@/lib/gamesToday";
+import { getGamesToday, GameTodayInfo, toLocalDateStr, getTodayET } from "@/lib/gamesToday";
 import { ROUND_NAMES } from "@/data/teams";
 import { formatPts } from "@/lib/scoring";
 
 const STORAGE_KEY_FINAL = "games-today-final-expanded";
 const STORAGE_KEY_UPCOMING = "games-today-upcoming-expanded";
 
+// ── Date helpers ─────────────────────────────────────────────────
+
+/** Parse "YYYY-MM-DD" into a local Date (avoids UTC midnight shift). */
+function parseDateStr(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** "2026-03-20" → "THU, MAR 20" */
+function formatDateNav(dateStr: string): string {
+  return parseDateStr(dateStr)
+    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    .toUpperCase();
+}
+
+/** "2026-03-20" → "Thu, Mar 20" */
+function formatDateHeader(dateStr: string): string {
+  return parseDateStr(dateStr).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Shift a YYYY-MM-DD by N days. */
+function shiftDate(dateStr: string, days: number): string {
+  const d = parseDateStr(dateStr);
+  d.setDate(d.getDate() + days);
+  return toLocalDateStr(d);
+}
+
+/** "2026-03-19" → "20260319" for ESPN API. */
+function toESPNDate(dateStr: string): string {
+  return dateStr.replace(/-/g, "");
+}
+
+/** Validate YYYY-MM-DD format and real date. */
+function isValidDateStr(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = parseDateStr(s);
+  return !isNaN(d.getTime()) && toLocalDateStr(d) === s;
+}
+
+// ── Component ────────────────────────────────────────────────────
+
 interface GamesTodayProps {
   allGames: LiveGame[];
 }
 
 export default function GamesToday({ allGames }: GamesTodayProps) {
-  const games = useMemo(() => getGamesToday(allGames), [allGames]);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
+  // Today in ET (recomputed each render, self-corrects at midnight ET)
+  const todayStr = getTodayET();
+
+  // Read & validate ?date= param
+  const rawDate = searchParams.get("date");
+  const selectedDate = rawDate && isValidDateStr(rawDate) ? rawDate : todayStr;
+  const isToday = selectedDate === todayStr;
+  const isFutureOrToday = selectedDate >= todayStr;
+
+  // ── Historical fetch state ──
+  const [historicalGames, setHistoricalGames] = useState<LiveGame[]>([]);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  // ── Collapse state ──
   const [finalExpanded, setFinalExpanded] = useState(false);
   const [upcomingExpanded, setUpcomingExpanded] = useState(false);
 
+  // ── Navigation ──
+  const navigateToDate = useCallback(
+    (dateStr: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (dateStr === todayStr) {
+        params.delete("date");
+      } else {
+        params.set("date", dateStr);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `?${qs}` : "/", { scroll: false });
+    },
+    [searchParams, todayStr, router],
+  );
+
+  const goBack = useCallback(() => {
+    navigateToDate(shiftDate(selectedDate, -1));
+  }, [selectedDate, navigateToDate]);
+
+  const goForward = useCallback(() => {
+    if (!isFutureOrToday) navigateToDate(shiftDate(selectedDate, 1));
+  }, [selectedDate, isFutureOrToday, navigateToDate]);
+
+  // ── Fetch historical games when not viewing today ──
   useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY_FINAL) === "true") setFinalExpanded(true);
-    if (localStorage.getItem(STORAGE_KEY_UPCOMING) === "true") setUpcomingExpanded(true);
-  }, []);
+    if (isToday) {
+      setHistoricalGames([]);
+      setHistoricalError(null);
+      setHistoricalLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setHistoricalLoading(true);
+    setHistoricalError(null);
+
+    // Fetch target date AND next UTC day to catch late-night ET games
+    // (e.g., a 10pm ET game = 2am UTC next day)
+    const d1 = toESPNDate(selectedDate);
+    const d2 = toESPNDate(shiftDate(selectedDate, 1));
+    Promise.all([
+      fetch(`/api/scores?dates=${d1}`).then((r) => r.ok ? r.json() : Promise.reject(new Error("Failed to fetch games"))),
+      fetch(`/api/scores?dates=${d2}`).then((r) => r.ok ? r.json() : { allGames: [] }),
+    ])
+      .then(([data1, data2]) => {
+        if (!cancelled) {
+          const combined = [...(data1.allGames || []), ...(data2.allGames || [])];
+          setHistoricalGames(combined);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setHistoricalError(err instanceof Error ? err.message : "Unknown error");
+      })
+      .finally(() => {
+        if (!cancelled) setHistoricalLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedDate, isToday, fetchKey]);
+
+  // ── Reset collapse state on date change ──
+  useEffect(() => {
+    if (isToday) {
+      setFinalExpanded(localStorage.getItem(STORAGE_KEY_FINAL) === "true");
+      setUpcomingExpanded(localStorage.getItem(STORAGE_KEY_UPCOMING) === "true");
+    } else {
+      setFinalExpanded(true);
+      setUpcomingExpanded(false);
+    }
+  }, [isToday, selectedDate]);
 
   const toggleFinal = useCallback(() => {
     setFinalExpanded((prev) => {
       const next = !prev;
-      localStorage.setItem(STORAGE_KEY_FINAL, String(next));
+      if (isToday) localStorage.setItem(STORAGE_KEY_FINAL, String(next));
       return next;
     });
-  }, []);
+  }, [isToday]);
 
   const toggleUpcoming = useCallback(() => {
     setUpcomingExpanded((prev) => {
       const next = !prev;
-      localStorage.setItem(STORAGE_KEY_UPCOMING, String(next));
+      if (isToday) localStorage.setItem(STORAGE_KEY_UPCOMING, String(next));
       return next;
     });
-  }, []);
+  }, [isToday]);
 
-  if (games.length === 0) return null;
+  // ── Process games ──
+  const sourceGames = isToday ? allGames : historicalGames;
+  const games = useMemo(() => getGamesToday(sourceGames, selectedDate), [sourceGames, selectedDate]);
 
   const liveGames = games.filter((g) => g.statusLabel === "LIVE");
   const finalGames = games.filter((g) => g.statusLabel === "FINAL");
   const upcomingGames = games.filter((g) => g.statusLabel === "SCHEDULED");
 
-  const dateStr = new Date().toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-
+  // ── Render ──
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 card-shadow">
+      {/* Date navigation bar */}
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={goBack}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer text-gray-500 hover:text-gray-700"
+          aria-label="Previous day"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <button
+          onClick={() => navigateToDate(todayStr)}
+          className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
+        >
+          {formatDateNav(selectedDate)}
+        </button>
+
+        <button
+          onClick={goForward}
+          disabled={isFutureOrToday}
+          className={`p-1.5 rounded-lg transition-colors ${
+            isFutureOrToday
+              ? "text-gray-200 cursor-not-allowed"
+              : "hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700"
+          }`}
+          aria-label="Next day"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Section header */}
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        Games Today <span className="text-gray-400 font-normal">{"\u2014"} {dateStr}</span>
+        {isToday ? "Games Today" : "Games"}{" "}
+        <span className="text-gray-400 font-normal">
+          {"\u2014"} {formatDateHeader(selectedDate)}
+        </span>
       </h3>
 
-      <div className="space-y-3">
-        {liveGames.length > 0 && (
-          <GameGroup label="Live" labelColor="text-green-600" games={liveGames} />
-        )}
-        {finalGames.length > 0 && (
-          <CollapsibleGroup
-            label="Final"
-            labelColor="text-gray-400"
-            count={finalGames.length}
-            expanded={finalExpanded}
-            onToggle={toggleFinal}
-            games={finalGames}
-          />
-        )}
-        {upcomingGames.length > 0 && (
-          <CollapsibleGroup
-            label="Upcoming"
-            labelColor="text-gray-500"
-            count={upcomingGames.length}
-            expanded={upcomingExpanded}
-            onToggle={toggleUpcoming}
-            games={upcomingGames}
-          />
-        )}
-      </div>
+      {/* Loading skeleton */}
+      {historicalLoading && !isToday && (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {historicalError && !isToday && (
+        <div className="text-center py-6">
+          <p className="text-sm text-red-500">Failed to load games</p>
+          <button
+            onClick={() => setFetchKey((k) => k + 1)}
+            className="text-xs text-gray-500 underline mt-1 cursor-pointer"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!historicalLoading && !historicalError && games.length === 0 && (
+        <div className="text-center py-6">
+          <p className="text-sm text-gray-500">
+            {isFutureOrToday && !isToday
+              ? "No games yet \u2014 check back later"
+              : isToday
+              ? "No games featuring your teams today"
+              : "No games featuring your teams on this date"}
+          </p>
+        </div>
+      )}
+
+      {/* Game groups */}
+      {!historicalLoading && !historicalError && games.length > 0 && (
+        <div className="space-y-3">
+          {liveGames.length > 0 && (
+            <GameGroup label="Live" labelColor="text-green-600" games={liveGames} />
+          )}
+          {finalGames.length > 0 && (
+            <CollapsibleGroup
+              label="Final"
+              labelColor="text-gray-400"
+              count={finalGames.length}
+              expanded={finalExpanded}
+              onToggle={toggleFinal}
+              games={finalGames}
+            />
+          )}
+          {upcomingGames.length > 0 && (
+            <CollapsibleGroup
+              label="Upcoming"
+              labelColor="text-gray-500"
+              count={upcomingGames.length}
+              expanded={upcomingExpanded}
+              onToggle={toggleUpcoming}
+              games={upcomingGames}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
+// ── Sub-components (unchanged from before) ───────────────────────
 
 function GameGroup({ label, labelColor, games }: { label: string; labelColor: string; games: GameTodayInfo[] }) {
   return (
@@ -154,12 +359,10 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
   const isLive = info.statusLabel === "LIVE";
   const isFinal = info.statusLabel === "FINAL";
 
-  // Determine winner/loser for final games
   const winner = info.game.winner;
   const isTeam1Winner = isFinal && winner === info.game.team1;
   const isTeam2Winner = isFinal && winner === info.game.team2;
 
-  // Calculate points awarded for the winner in final games
   const winnerOwner = isTeam1Winner ? info.team1Owner : isTeam2Winner ? info.team2Owner : null;
   const winnerPoints = isTeam1Winner ? info.team1PointsIfWin : isTeam2Winner ? info.team2PointsIfWin : 0;
 

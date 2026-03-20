@@ -16,19 +16,37 @@ export interface GameTodayInfo {
 }
 
 /** Return YYYY-MM-DD for a Date in the user's local timezone. */
-function toLocalDateStr(d: Date): string {
+export function toLocalDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function getGamesToday(allGames: LiveGame[]): GameTodayInfo[] {
-  const todayStr = toLocalDateStr(new Date());
+/**
+ * Convert a UTC timestamp to an ET date string (YYYY-MM-DD).
+ * Subtracts 4 hours (EDT) so a game at 2am UTC is bucketed to the previous ET day.
+ */
+export function toETDateStr(utcTimestamp: string): string {
+  const etMs = new Date(utcTimestamp).getTime() - 4 * 60 * 60 * 1000;
+  const d = new Date(etMs);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
 
-  const todayGames = allGames.filter((g) => {
+/** Get today's date in ET (UTC-4) as YYYY-MM-DD. */
+export function getTodayET(): string {
+  const etMs = Date.now() - 4 * 60 * 60 * 1000;
+  const d = new Date(etMs);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function getGamesToday(allGames: LiveGame[], targetDateET?: string): GameTodayInfo[] {
+  const dateStr = targetDateET ?? getTodayET();
+
+  // Filter games by ET date (a game at 2am UTC belongs to the previous ET day)
+  const dateGames = allGames.filter((g) => {
     if (!g.startTime) return false;
-    return toLocalDateStr(new Date(g.startTime)) === todayStr;
+    return toETDateStr(g.startTime) === dateStr;
   });
 
-  const enriched: GameTodayInfo[] = todayGames.map((game) => {
+  const enriched: GameTodayInfo[] = dateGames.map((game) => {
     const team1Owner = getTeamOwner(game.team1);
     const team2Owner = getTeamOwner(game.team2);
     const team1Info = getTeamInfo(game.team1);
