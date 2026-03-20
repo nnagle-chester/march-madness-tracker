@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { LiveGame } from "@/lib/espn";
 import { getGamesToday, GameTodayInfo } from "@/lib/gamesToday";
 import { ROUND_NAMES } from "@/data/teams";
+import { formatPts } from "@/lib/scoring";
 
 interface GamesTodayProps {
   allGames: LiveGame[];
@@ -15,8 +16,8 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
   if (games.length === 0) return null;
 
   const liveGames = games.filter((g) => g.statusLabel === "LIVE");
-  const upcomingGames = games.filter((g) => g.statusLabel === "SCHEDULED");
   const finalGames = games.filter((g) => g.statusLabel === "FINAL");
+  const upcomingGames = games.filter((g) => g.statusLabel === "SCHEDULED");
 
   const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -34,11 +35,11 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
         {liveGames.length > 0 && (
           <GameGroup label="Live" labelColor="text-green-600" games={liveGames} />
         )}
-        {upcomingGames.length > 0 && (
-          <GameGroup label="Upcoming" labelColor="text-gray-500" games={upcomingGames} />
-        )}
         {finalGames.length > 0 && (
           <GameGroup label="Final" labelColor="text-gray-400" games={finalGames} />
+        )}
+        {upcomingGames.length > 0 && (
+          <GameGroup label="Upcoming" labelColor="text-gray-500" games={upcomingGames} />
         )}
       </div>
     </div>
@@ -65,13 +66,22 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
   const isLive = info.statusLabel === "LIVE";
   const isFinal = info.statusLabel === "FINAL";
 
+  // Determine winner/loser for final games
+  const winner = info.game.winner;
+  const isTeam1Winner = isFinal && winner === info.game.team1;
+  const isTeam2Winner = isFinal && winner === info.game.team2;
+
+  // Calculate points awarded for the winner in final games
+  const winnerOwner = isTeam1Winner ? info.team1Owner : isTeam2Winner ? info.team2Owner : null;
+  const winnerPoints = isTeam1Winner ? info.team1PointsIfWin : isTeam2Winner ? info.team2PointsIfWin : 0;
+
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-xl border transition-shadow card-shadow-hover ${
         isLive
           ? "bg-white border-green-200 border-l-4 border-l-green-500"
           : isFinal
-          ? "bg-gray-50/50 border-gray-100 opacity-60"
+          ? "bg-white border-gray-200"
           : "bg-white border-gray-200"
       }`}
     >
@@ -82,11 +92,21 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
             className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: info.team1Color }}
           />
-          <span className="font-medium text-gray-900 truncate">
+          <span
+            className={`truncate ${
+              isTeam1Winner
+                ? "font-bold text-gray-900"
+                : isFinal && isTeam2Winner
+                ? "text-gray-400 line-through"
+                : "font-medium text-gray-900"
+            }`}
+          >
             ({info.team1Seed}) {info.game.team1}
           </span>
           {info.statusLabel !== "SCHEDULED" && (
-            <span className="font-bold text-gray-900 ml-auto">{info.game.score1}</span>
+            <span className={`ml-auto ${isTeam1Winner ? "font-bold text-gray-900" : isFinal ? "text-gray-400" : "font-bold text-gray-900"}`}>
+              {info.game.score1}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5 text-sm mt-1">
@@ -94,11 +114,21 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
             className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: info.team2Color }}
           />
-          <span className="font-medium text-gray-900 truncate">
+          <span
+            className={`truncate ${
+              isTeam2Winner
+                ? "font-bold text-gray-900"
+                : isFinal && isTeam1Winner
+                ? "text-gray-400 line-through"
+                : "font-medium text-gray-900"
+            }`}
+          >
             ({info.team2Seed}) {info.game.team2}
           </span>
           {info.statusLabel !== "SCHEDULED" && (
-            <span className="font-bold text-gray-900 ml-auto">{info.game.score2}</span>
+            <span className={`ml-auto ${isTeam2Winner ? "font-bold text-gray-900" : isFinal ? "text-gray-400" : "font-bold text-gray-900"}`}>
+              {info.game.score2}
+            </span>
           )}
         </div>
       </div>
@@ -132,25 +162,44 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
         )}
       </div>
 
-      {/* Points at stake */}
+      {/* Points section */}
       <div className="shrink-0 pl-3 border-l border-gray-200">
-        <div className="text-[10px] text-gray-400 mb-0.5">Points at stake</div>
-        <div className="space-y-0.5">
-          {info.team1Owner && (
+        {isFinal && winnerOwner ? (
+          <>
+            <div className="text-[10px] text-gray-400 mb-0.5">Points awarded</div>
             <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team1Color }} />
-              <span className="text-sm font-bold text-gray-900">+{info.team1PointsIfWin}</span>
-              <span className="text-xs text-gray-500">{info.team1Owner}</span>
+              <div
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: isTeam1Winner ? info.team1Color : info.team2Color }}
+              />
+              <span className="text-sm font-bold text-green-600">
+                {winnerOwner} +{formatPts(winnerPoints)}
+              </span>
             </div>
-          )}
-          {info.team2Owner && (
-            <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team2Color }} />
-              <span className="text-sm font-bold text-gray-900">+{info.team2PointsIfWin}</span>
-              <span className="text-xs text-gray-500">{info.team2Owner}</span>
+          </>
+        ) : isFinal && !winnerOwner ? (
+          <div className="text-xs text-gray-400">No pool pts</div>
+        ) : (
+          <>
+            <div className="text-[10px] text-gray-400 mb-0.5">Points at stake</div>
+            <div className="space-y-0.5">
+              {info.team1Owner && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team1Color }} />
+                  <span className="text-sm font-bold text-gray-900">+{info.team1PointsIfWin}</span>
+                  <span className="text-xs text-gray-500">{info.team1Owner}</span>
+                </div>
+              )}
+              {info.team2Owner && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team2Color }} />
+                  <span className="text-sm font-bold text-gray-900">+{info.team2PointsIfWin}</span>
+                  <span className="text-xs text-gray-500">{info.team2Owner}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

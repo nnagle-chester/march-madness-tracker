@@ -10,7 +10,6 @@ import RoundBreakdown from "@/components/RoundBreakdown";
 import WelcomeCard from "@/components/WelcomeCard";
 import LiveBanner from "@/components/LiveBanner";
 import GamesToday from "@/components/GamesToday";
-import EliminationFeed from "@/components/EliminationFeed";
 import ScoringTooltip from "@/components/ScoringTooltip";
 
 type View = "leaderboard" | "bracket" | "rounds";
@@ -75,10 +74,7 @@ export default function Home() {
       {/* 5. Games Today */}
       <GamesToday allGames={allGames} />
 
-      {/* 6. Recent Activity */}
-      <EliminationFeed results={results} />
-
-      {/* 7. Tab Navigation */}
+      {/* 6. Tab Navigation */}
       <Nav currentView={currentView} onViewChange={(v) => setCurrentView(v)} />
 
       {/* Error notice */}
