@@ -225,7 +225,7 @@ function getMatchupsForRegion(
 // ─── TeamLine ───────────────────────────────────────────────────────────────
 
 function TeamLine({
-  teamName, seed, isWinner, isLoser, isLive, score, mirrored,
+  teamName, seed, isWinner, isLoser, isLive, score,
 }: {
   teamName: string;
   seed: number;
@@ -233,7 +233,6 @@ function TeamLine({
   isLoser: boolean;
   isLive: boolean;
   score?: number;
-  mirrored?: boolean;
 }) {
   const owner = getTeamOwner(teamName);
   const color = owner ? PLAYER_COLORS[owner] : "#d1d5db";
@@ -242,8 +241,6 @@ function TeamLine({
   return (
     <div
       className={`flex items-center gap-1 px-1.5 py-0.5 text-[11px] leading-tight ${
-        mirrored ? "flex-row-reverse" : ""
-      } ${
         isLoser ? "opacity-35 line-through" : isWinner ? "font-semibold" : isTBD ? "text-gray-300 italic" : ""
       } ${isLive ? "live-pulse" : ""}`}
     >
@@ -251,14 +248,14 @@ function TeamLine({
         className="w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: color }}
       />
-      <span className="text-gray-400 w-3 text-[10px]" style={{ textAlign: mirrored ? "right" : "left" }}>
+      <span className="text-gray-400 w-3 text-[10px]">
         {seed || ""}
       </span>
       <span className={`truncate ${isWinner ? "text-gray-900" : "text-gray-700"}`}>
         {teamName}
       </span>
       {score !== undefined && (
-        <span className={`${mirrored ? "mr-auto" : "ml-auto"} text-gray-500 font-mono text-[10px]`}>
+        <span className="ml-auto text-gray-500 font-mono text-[10px]">
           {score}
         </span>
       )}
@@ -269,11 +266,10 @@ function TeamLine({
 // ─── GameCell ────────────────────────────────────────────────────────────────
 
 function GameCell({
-  matchup, onClick, mirrored,
+  matchup, onClick,
 }: {
   matchup: MatchupInfo;
   onClick: () => void;
-  mirrored?: boolean;
 }) {
   const isTopWinner = matchup.winner === matchup.topTeam;
   const isBottomWinner = matchup.winner === matchup.bottomTeam;
@@ -304,7 +300,6 @@ function GameCell({
           isLoser={isBottomWinner}
           isLive={matchup.isLive}
           score={matchup.topScore}
-          mirrored={mirrored}
         />
         <TeamLine
           teamName={matchup.bottomTeam}
@@ -313,7 +308,6 @@ function GameCell({
           isLoser={isTopWinner}
           isLive={matchup.isLive}
           score={matchup.bottomScore}
-          mirrored={mirrored}
         />
       </div>
     </button>
@@ -450,38 +444,35 @@ function GameModal({ matchup, onClose }: { matchup: MatchupInfo; onClose: () => 
 // ─── Region Quadrant ─────────────────────────────────────────────────────────
 
 function RegionQuadrant({
-  region, results, liveGames, mirrored, onGameClick,
+  region, results, liveGames, onGameClick,
 }: {
   region: RegionBracket;
   results: GameResult[];
   liveGames: LiveGame[];
-  mirrored: boolean;
   onGameClick: (m: MatchupInfo) => void;
 }) {
   const rounds = getMatchupsForRegion(region, results, liveGames);
   const roundLabels = ["R64", "R32", "S16", "E8"];
-  const displayRounds = mirrored ? [...rounds].reverse() : rounds;
-  const displayLabels = mirrored ? [...roundLabels].reverse() : roundLabels;
 
   return (
     <div className="flex-1 min-w-0">
-      <h3 className={`text-sm font-bold text-gray-900 mb-2 flex items-center gap-1.5 ${mirrored ? "justify-end" : ""}`}>
+      <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-1.5">
         <span className="w-1 h-4 bg-[#E8590C] rounded-full" />
         {region.name}
       </h3>
 
       <div className="flex gap-1">
-        {displayRounds.map((roundMatchups, colIdx) => (
+        {rounds.map((roundMatchups, colIdx) => (
           <div
             key={colIdx}
             className="flex flex-col justify-around flex-1 gap-0.5"
           >
             <div className="text-[10px] text-gray-400 text-center mb-0.5 font-medium">
-              {displayLabels[colIdx]}
+              {roundLabels[colIdx]}
             </div>
             {roundMatchups.map((m, i) => (
               <div key={i} className="flex-1 flex items-center justify-center px-0.5">
-                <GameCell matchup={m} onClick={() => onGameClick(m)} mirrored={mirrored} />
+                <GameCell matchup={m} onClick={() => onGameClick(m)} />
               </div>
             ))}
           </div>
@@ -681,20 +672,18 @@ export default function BracketView({ results, liveGames, allGames }: BracketVie
       {/* Bracket grid */}
       <div className="overflow-x-auto pb-4">
         <div style={{ minWidth: "1200px" }}>
-          {/* Top row: East (L→R) | West (R→L mirrored) */}
+          {/* Top row: East | West */}
           <div className="flex gap-4 flex-nowrap">
             <RegionQuadrant
               region={REGIONS[0]}
               results={results}
               liveGames={liveGames}
-              mirrored={false}
               onGameClick={setSelectedGame}
             />
             <RegionQuadrant
               region={REGIONS[3]}
               results={results}
               liveGames={liveGames}
-              mirrored={true}
               onGameClick={setSelectedGame}
             />
           </div>
@@ -708,20 +697,18 @@ export default function BracketView({ results, liveGames, allGames }: BracketVie
             />
           </div>
 
-          {/* Bottom row: South (L→R) | Midwest (R→L mirrored) */}
+          {/* Bottom row: South | Midwest */}
           <div className="flex gap-4 flex-nowrap">
             <RegionQuadrant
               region={REGIONS[1]}
               results={results}
               liveGames={liveGames}
-              mirrored={false}
               onGameClick={setSelectedGame}
             />
             <RegionQuadrant
               region={REGIONS[2]}
               results={results}
               liveGames={liveGames}
-              mirrored={true}
               onGameClick={setSelectedGame}
             />
           </div>
