@@ -46,15 +46,15 @@ export default function Leaderboard({
               onClick={() => setExpandedPlayer(isExpanded ? null : ps.playerName)}
               className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-xl border transition-all card-shadow-hover cursor-pointer ${
                 isLeader
-                  ? "bg-gradient-to-r from-[#E8590C]/5 to-white border-[#E8590C]/20 shadow-sm"
+                  ? "bg-gradient-to-r from-amber-50 to-yellow-50/50 border-amber-200 shadow-sm"
                   : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
               }`}
             >
               {/* Rank */}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${
                   idx === 0
-                    ? "bg-[#E8590C] text-white"
+                    ? "bg-amber-500 text-white"
                     : idx === 1
                     ? "bg-gray-400 text-white"
                     : idx === 2
@@ -68,19 +68,17 @@ export default function Leaderboard({
               {/* Player color dot + name */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div
-                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  className="w-4 h-4 rounded-full shrink-0"
                   style={{ backgroundColor: ps.color }}
                 />
                 <span className="font-semibold text-gray-900 truncate">
                   {ps.playerName}
                 </span>
                 {isLeader && (
-                  <span className="text-xs bg-[#E8590C]/5 text-[#E8590C] px-2 py-0.5 rounded-full border border-[#E8590C]/20">
-                    Leader
-                  </span>
+                  <span className="text-sm">{"\uD83D\uDC51"}</span>
                 )}
                 {mp && !mp.isContender && ps.totalPoints > 0 && (
-                  <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">
+                  <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full border border-red-200">
                     OUT
                   </span>
                 )}
@@ -90,7 +88,7 @@ export default function Leaderboard({
               <div className="flex items-center gap-4 text-right">
                 <div className="hidden sm:block">
                   <div className="text-xs text-gray-500">This Round</div>
-                  <div className="text-sm font-medium text-gray-700">
+                  <div className={`text-sm font-bold ${roundPoints > 0 ? "text-green-600" : "text-gray-400"}`}>
                     +{roundPoints}
                   </div>
                 </div>
@@ -101,7 +99,7 @@ export default function Leaderboard({
                   </div>
                 </div>
                 {mp && (
-                  <div className="hidden sm:block">
+                  <div className="hidden sm:block" title="Maximum possible score if all remaining teams win every game">
                     <div className="text-xs text-gray-500">Max</div>
                     <div className="text-sm font-medium text-gray-500">
                       {mp.maxPossible}
@@ -116,7 +114,7 @@ export default function Leaderboard({
                 </div>
                 {/* Chevron */}
                 <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -133,7 +131,9 @@ export default function Leaderboard({
 
             {/* Inline expansion panel */}
             {isExpanded && (
-              <InlineRoster player={ps} results={results} />
+              <div className="animate-fade-in">
+                <InlineRoster player={ps} results={results} />
+              </div>
             )}
           </div>
         );

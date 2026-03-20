@@ -18,15 +18,21 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
   const upcomingGames = games.filter((g) => g.statusLabel === "SCHEDULED");
   const finalGames = games.filter((g) => g.statusLabel === "FINAL");
 
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 card-shadow mt-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 card-shadow">
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        Games Today
+        Games Today <span className="text-gray-400 font-normal">{"\u2014"} {dateStr}</span>
       </h3>
 
       <div className="space-y-3">
         {liveGames.length > 0 && (
-          <GameGroup label="Live" labelColor="text-red-600" games={liveGames} />
+          <GameGroup label="Live" labelColor="text-green-600" games={liveGames} />
         )}
         {upcomingGames.length > 0 && (
           <GameGroup label="Upcoming" labelColor="text-gray-500" games={upcomingGames} />
@@ -45,7 +51,7 @@ function GameGroup({ label, labelColor, games }: { label: string; labelColor: st
       <div className={`text-[10px] font-semibold uppercase tracking-wider ${labelColor} mb-1.5`}>
         {label}
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {games.map((g) => (
           <GameTodayRow key={g.game.gameId} info={g} />
         ))}
@@ -56,22 +62,24 @@ function GameGroup({ label, labelColor, games }: { label: string; labelColor: st
 
 function GameTodayRow({ info }: { info: GameTodayInfo }) {
   const roundName = info.game.round ? ROUND_NAMES[info.game.round] : "";
-
-  // Format points at stake with owner names
-  const team1PtsLabel = info.team1Owner
-    ? `${info.team1Owner} +${info.team1PointsIfWin}`
-    : `+${info.team1PointsIfWin}`;
-  const team2PtsLabel = info.team2Owner
-    ? `${info.team2Owner} +${info.team2PointsIfWin}`
-    : `+${info.team2PointsIfWin}`;
+  const isLive = info.statusLabel === "LIVE";
+  const isFinal = info.statusLabel === "FINAL";
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+    <div
+      className={`flex items-center gap-3 p-3 rounded-xl border transition-shadow card-shadow-hover ${
+        isLive
+          ? "bg-white border-green-200 border-l-4 border-l-green-500"
+          : isFinal
+          ? "bg-gray-50/50 border-gray-100 opacity-60"
+          : "bg-white border-gray-200"
+      }`}
+    >
       {/* Teams */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 text-sm">
           <div
-            className="w-2 h-2 rounded-full shrink-0"
+            className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: info.team1Color }}
           />
           <span className="font-medium text-gray-900 truncate">
@@ -81,9 +89,9 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
             <span className="font-bold text-gray-900 ml-auto">{info.game.score1}</span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 text-sm mt-0.5">
+        <div className="flex items-center gap-1.5 text-sm mt-1">
           <div
-            className="w-2 h-2 rounded-full shrink-0"
+            className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: info.team2Color }}
           />
           <span className="font-medium text-gray-900 truncate">
@@ -97,28 +105,51 @@ function GameTodayRow({ info }: { info: GameTodayInfo }) {
 
       {/* Status / Time */}
       <div className="text-right shrink-0">
-        {info.statusLabel === "LIVE" && (
-          <div className="flex items-center gap-1">
-            <span className="live-pulse inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
-            <span className="text-xs font-bold text-red-600">LIVE</span>
+        {isLive && (
+          <div className="flex items-center gap-1.5">
+            <span className="live-pulse inline-block w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-xs font-bold text-green-600">LIVE</span>
           </div>
         )}
         {info.statusLabel === "SCHEDULED" && (
-          <span className="text-xs text-gray-500">{info.tipTime}</span>
+          <div className="flex items-center gap-1 text-gray-500">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs">{info.tipTime}</span>
+          </div>
         )}
-        {info.statusLabel === "FINAL" && (
-          <span className="text-xs font-medium text-gray-400">FINAL</span>
+        {isFinal && (
+          <div className="flex items-center gap-1 text-gray-400">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-xs font-medium">Final</span>
+          </div>
         )}
         {roundName && (
-          <div className="text-[10px] text-gray-400">{roundName}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">{roundName}</div>
         )}
       </div>
 
       {/* Points at stake */}
-      <div className="text-right shrink-0 pl-2 border-l border-gray-200">
-        <div className="text-[10px] text-gray-400">Pts at stake</div>
-        <div className="text-xs font-semibold text-[#E8590C]">
-          {team1PtsLabel} / {team2PtsLabel}
+      <div className="shrink-0 pl-3 border-l border-gray-200">
+        <div className="text-[10px] text-gray-400 mb-0.5">Points at stake</div>
+        <div className="space-y-0.5">
+          {info.team1Owner && (
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team1Color }} />
+              <span className="text-sm font-bold text-gray-900">+{info.team1PointsIfWin}</span>
+              <span className="text-xs text-gray-500">{info.team1Owner}</span>
+            </div>
+          )}
+          {info.team2Owner && (
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.team2Color }} />
+              <span className="text-sm font-bold text-gray-900">+{info.team2PointsIfWin}</span>
+              <span className="text-xs text-gray-500">{info.team2Owner}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useScores } from "@/lib/useScores";
 import Nav from "@/components/Nav";
-import RoundProgressBar from "@/components/RoundProgressBar";
+import TournamentStatusBar from "@/components/TournamentStatusBar";
 import Leaderboard from "@/components/Leaderboard";
 import BracketView from "@/components/BracketView";
 import RoundBreakdown from "@/components/RoundBreakdown";
 import WelcomeCard from "@/components/WelcomeCard";
 import LiveBanner from "@/components/LiveBanner";
 import GamesToday from "@/components/GamesToday";
-import CinderellaTracker from "@/components/CinderellaTracker";
 import EliminationFeed from "@/components/EliminationFeed";
 import ScoringTooltip from "@/components/ScoringTooltip";
 
@@ -43,10 +42,10 @@ export default function Home() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-6 pb-20">
-      {/* Welcome Card */}
+      {/* 1. Welcome Card */}
       <WelcomeCard />
 
-      {/* Header */}
+      {/* 2. Header */}
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
@@ -62,18 +61,24 @@ export default function Home() {
         )}
       </div>
 
-      {/* Live Banner */}
+      {/* 3. Live Banner */}
       <LiveBanner liveGames={liveGames} />
 
-      {/* Round Progress */}
-      <RoundProgressBar
+      {/* 4. Tournament Status Bar */}
+      <TournamentStatusBar
         currentRound={roundProgress.currentRound}
         gamesCompleted={roundProgress.gamesCompleted}
         totalGamesInRound={roundProgress.totalGamesInRound}
         liveCount={liveGames.length}
       />
 
-      {/* Navigation */}
+      {/* 5. Games Today */}
+      <GamesToday allGames={allGames} />
+
+      {/* 6. Recent Activity */}
+      <EliminationFeed results={results} />
+
+      {/* 7. Tab Navigation */}
       <Nav currentView={currentView} onViewChange={(v) => setCurrentView(v)} />
 
       {/* Error notice */}
@@ -83,20 +88,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* Content */}
+      {/* 8. Tab Content */}
       {currentView === "leaderboard" && (
-        <>
-          <Leaderboard
-            playerScores={playerScores}
-            currentRound={roundProgress.currentRound}
-            results={results}
-          />
-          <GamesToday allGames={allGames} />
-          <div className="mt-4 space-y-4">
-            <CinderellaTracker results={results} />
-            <EliminationFeed results={results} />
-          </div>
-        </>
+        <Leaderboard
+          playerScores={playerScores}
+          currentRound={roundProgress.currentRound}
+          results={results}
+        />
       )}
 
       {currentView === "bracket" && (

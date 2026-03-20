@@ -20,10 +20,10 @@ export default function Nav({ currentView, onViewChange }: NavProps) {
         <button
           key={tab.id}
           onClick={() => onViewChange(tab.id)}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm transition-colors duration-200 ${
             currentView === tab.id
-              ? "bg-[#E8590C]/5 text-[#E8590C] border border-[#E8590C]/20"
-              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              ? "bg-[#E8590C] text-white font-bold shadow-sm"
+              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 font-medium"
           }`}
         >
           <span className="text-base">{tab.icon}</span>
