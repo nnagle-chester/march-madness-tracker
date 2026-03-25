@@ -1,6 +1,6 @@
 "use client";
 
-type View = "leaderboard" | "bracket" | "rounds";
+type View = "leaderboard" | "bracket" | "rounds" | "forecast";
 
 interface NavProps {
   currentView: View;
@@ -12,6 +12,7 @@ export default function Nav({ currentView, onViewChange }: NavProps) {
     { id: "leaderboard", label: "Standings", icon: "\u{1F3C6}" },
     { id: "bracket", label: "Bracket", icon: "\u{1F4CA}" },
     { id: "rounds", label: "Rounds", icon: "\u{1F4CB}" },
+    { id: "forecast", label: "Forecast", icon: "\u{1F4C8}" },
   ];
 
   return (

@@ -1,5 +1,6 @@
 import { PLAYERS, ROUND_POINTS, GameResult, getTeamInfo } from "@/data/teams";
 import { PlayerScore } from "@/lib/scoring";
+import { ForecastResult } from "@/lib/simulation/types";
 
 export interface MaxPossibleResult {
   playerName: string;
@@ -54,6 +55,33 @@ export function calculateMaxPossible(
       playerName: ps.playerName,
       currentPoints: ps.totalPoints,
       maxRemaining,
+      maxPossible,
+      isContender: maxPossible >= leaderPoints,
+    };
+  });
+}
+
+/**
+ * Create MaxPossibleResult[] from simulation-backed forecast data.
+ * This replaces the broken rough max with accurate simulation results.
+ */
+export function mergeSimulationMax(
+  playerScores: PlayerScore[],
+  forecasts: ForecastResult[]
+): MaxPossibleResult[] {
+  const leaderPoints = playerScores.length > 0 ? playerScores[0].totalPoints : 0;
+  const forecastMap = new Map<string, ForecastResult>();
+  for (const f of forecasts) {
+    forecastMap.set(f.playerName, f);
+  }
+
+  return playerScores.map((ps) => {
+    const f = forecastMap.get(ps.playerName);
+    const maxPossible = f?.maxPossible ?? ps.totalPoints;
+    return {
+      playerName: ps.playerName,
+      currentPoints: ps.totalPoints,
+      maxRemaining: maxPossible - ps.totalPoints,
       maxPossible,
       isContender: maxPossible >= leaderPoints,
     };

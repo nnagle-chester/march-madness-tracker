@@ -4,7 +4,7 @@ const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
 // Map ESPN full team names to our roster names
-const TEAM_ALIAS_MAP: Record<string, string> = {
+export const TEAM_ALIAS_MAP: Record<string, string> = {
   "Texas A&M Aggies": "Texas A&M",
   "Wisconsin Badgers": "Wisconsin",
   "Tennessee Volunteers": "Tennessee",
@@ -76,7 +76,7 @@ const TEAM_ALIAS_MAP: Record<string, string> = {
   "Howard Bison": "Howard",
 };
 
-function normalizeTeamName(espnName: string): string {
+export function normalizeTeamName(espnName: string): string {
   // Direct match
   if (TEAM_ALIAS_MAP[espnName]) {
     return TEAM_ALIAS_MAP[espnName];

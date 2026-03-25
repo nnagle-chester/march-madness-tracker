@@ -7,24 +7,29 @@ import { GameResult } from "@/data/teams";
 const SHORT_ROUND: Record<number, string> = {
   1: "R64", 2: "R32", 3: "S16", 4: "E8", 5: "F4", 6: "NC",
 };
-import { calculateMaxPossible, MaxPossibleResult } from "@/lib/maxPossible";
+import { calculateMaxPossible, mergeSimulationMax, MaxPossibleResult } from "@/lib/maxPossible";
+import { ForecastResult } from "@/lib/simulation/types";
 
 interface LeaderboardProps {
   playerScores: PlayerScore[];
   currentRound: number;
   results: GameResult[];
+  forecasts?: ForecastResult[];
 }
 
 export default function Leaderboard({
   playerScores,
   currentRound,
   results,
+  forecasts,
 }: LeaderboardProps) {
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
 
   const maxPossible = useMemo(
-    () => calculateMaxPossible(playerScores, results),
-    [playerScores, results]
+    () => forecasts && forecasts.length > 0
+      ? mergeSimulationMax(playerScores, forecasts)
+      : calculateMaxPossible(playerScores, results),
+    [playerScores, results, forecasts]
   );
 
   const maxMap = useMemo(() => {

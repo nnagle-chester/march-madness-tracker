@@ -2,17 +2,19 @@
 
 import { useState, Suspense } from "react";
 import { useScores } from "@/lib/useScores";
+import { useForecast } from "@/lib/useForecast";
 import Nav from "@/components/Nav";
 import TournamentStatusBar from "@/components/TournamentStatusBar";
 import Leaderboard from "@/components/Leaderboard";
 import BracketView from "@/components/BracketView";
 import RoundBreakdown from "@/components/RoundBreakdown";
+import Forecast from "@/components/Forecast";
 import WelcomeCard from "@/components/WelcomeCard";
 
 import GamesToday from "@/components/GamesToday";
 import ScoringTooltip from "@/components/ScoringTooltip";
 
-type View = "leaderboard" | "bracket" | "rounds";
+type View = "leaderboard" | "bracket" | "rounds" | "forecast";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>("leaderboard");
@@ -27,6 +29,8 @@ export default function Home() {
     loading,
     error,
   } = useScores();
+
+  const { forecast, loading: forecastLoading, error: forecastError, refetch: refetchForecast } = useForecast();
 
   if (loading) {
     return (
@@ -89,6 +93,7 @@ export default function Home() {
           playerScores={playerScores}
           currentRound={roundProgress.currentRound}
           results={results}
+          forecasts={forecast?.forecasts}
         />
       )}
 
@@ -98,6 +103,15 @@ export default function Home() {
 
       {currentView === "rounds" && (
         <RoundBreakdown playerScores={playerScores} results={results} />
+      )}
+
+      {currentView === "forecast" && (
+        <Forecast
+          forecast={forecast}
+          loading={forecastLoading}
+          error={forecastError}
+          onRefresh={refetchForecast}
+        />
       )}
     </main>
   );
