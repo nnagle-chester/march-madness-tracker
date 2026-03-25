@@ -146,25 +146,108 @@ export function getCurrentRound(results: GameResult[]): number {
   return Math.max(...validRounds);
 }
 
-export function getRoundProgress(results: GameResult[]): {
+// Tournament schedule: round number → date range (YYYY-MM-DD in ET)
+const ROUND_SCHEDULE: { round: number; startDate: string; endDate: string }[] = [
+  { round: 1, startDate: "2026-03-19", endDate: "2026-03-20" },
+  { round: 2, startDate: "2026-03-21", endDate: "2026-03-22" },
+  { round: 3, startDate: "2026-03-27", endDate: "2026-03-28" },
+  { round: 4, startDate: "2026-03-29", endDate: "2026-03-30" },
+  { round: 5, startDate: "2026-04-04", endDate: "2026-04-04" },
+  { round: 6, startDate: "2026-04-06", endDate: "2026-04-06" },
+];
+
+const GAMES_IN_ROUND: Record<number, number> = {
+  1: 32, 2: 16, 3: 8, 4: 4, 5: 2, 6: 1,
+};
+
+/** Get today's date in ET as YYYY-MM-DD. */
+function getTodayETStr(): string {
+  const etMs = Date.now() - 4 * 60 * 60 * 1000;
+  const d = new Date(etMs);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export interface RoundProgress {
   currentRound: number;
   gamesCompleted: number;
   totalGamesInRound: number;
-} {
-  const currentRound = getCurrentRound(results);
-  const gamesInRound: Record<number, number> = {
-    1: 32,
-    2: 16,
-    3: 8,
-    4: 4,
-    5: 2,
-    6: 1,
+  betweenRounds: boolean;
+  nextRoundStartDate: string | null; // "Thu, Mar 27" format
+}
+
+export function getRoundProgress(results: GameResult[]): RoundProgress {
+  const today = getTodayETStr();
+
+  // Count completed games per round
+  const completedByRound: Record<number, number> = {};
+  for (const r of results) {
+    if (r.round >= 1) {
+      completedByRound[r.round] = (completedByRound[r.round] || 0) + 1;
+    }
+  }
+
+  // Find which round we're in based on date + completion
+  for (const sched of ROUND_SCHEDULE) {
+    const total = GAMES_IN_ROUND[sched.round] || 0;
+    const completed = completedByRound[sched.round] || 0;
+    const roundComplete = completed >= total;
+
+    // If this round is fully complete, move to next
+    if (roundComplete) continue;
+
+    // This round is not complete
+    const isWithinDates = today >= sched.startDate && today <= sched.endDate;
+    const isBeforeDates = today < sched.startDate;
+
+    if (isWithinDates) {
+      // We're in the middle of this round
+      return {
+        currentRound: sched.round,
+        gamesCompleted: completed,
+        totalGamesInRound: total,
+        betweenRounds: false,
+        nextRoundStartDate: null,
+      };
+    }
+
+    if (isBeforeDates) {
+      // We're between rounds — this round hasn't started yet
+      const startDate = new Date(sched.startDate + "T12:00:00");
+      const formatted = startDate.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      return {
+        currentRound: sched.round,
+        gamesCompleted: 0,
+        totalGamesInRound: total,
+        betweenRounds: true,
+        nextRoundStartDate: formatted,
+      };
+    }
+
+    // Past the dates but not complete — round is still active (late results)
+    return {
+      currentRound: sched.round,
+      gamesCompleted: completed,
+      totalGamesInRound: total,
+      betweenRounds: false,
+      nextRoundStartDate: null,
+    };
+  }
+
+  // All rounds complete — tournament is over
+  return {
+    currentRound: 6,
+    gamesCompleted: completedByRound[6] || 0,
+    totalGamesInRound: 1,
+    betweenRounds: false,
+    nextRoundStartDate: null,
   };
-
-  const gamesCompleted = results.filter((r) => r.round === currentRound).length;
-  const totalGamesInRound = gamesInRound[currentRound] || 32;
-
-  return { currentRound, gamesCompleted, totalGamesInRound };
 }
 
 export function formatPts(n: number): string {

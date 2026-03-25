@@ -70,6 +70,8 @@ export default function Home() {
         gamesCompleted={roundProgress.gamesCompleted}
         totalGamesInRound={roundProgress.totalGamesInRound}
         liveCount={liveGames.length}
+        betweenRounds={roundProgress.betweenRounds}
+        nextRoundStartDate={roundProgress.nextRoundStartDate}
       />
 
       {/* 5. Games Today */}
