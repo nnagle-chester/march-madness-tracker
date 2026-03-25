@@ -26,6 +26,7 @@ export interface ForecastResult {
   maxPossible: number;      // highest score across all sims
   winPct: number;           // % of sims finishing #1
   top3Pct: number;          // % of sims finishing top 3
+  lastPlacePct: number;     // % of sims finishing last (8th)
   medianScore: number;
   isContender: boolean;     // maxPossible >= leader's current score
   pathsToVictory: string[]; // up to 3 narrative descriptions

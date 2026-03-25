@@ -82,11 +82,13 @@ function aggregateResults(
   const allScores: Record<string, number[]> = {};
   const winCounts: Record<string, number> = {};
   const top3Counts: Record<string, number> = {};
+  const lastPlaceCounts: Record<string, number> = {};
 
   for (const name of playerNames) {
     allScores[name] = [];
     winCounts[name] = 0;
     top3Counts[name] = 0;
+    lastPlaceCounts[name] = 0;
   }
 
   for (const sim of simResults) {
@@ -117,6 +119,16 @@ function aggregateResults(
         top3Counts[r.name]++;
       }
     }
+
+    // Last place (handle ties at last)
+    const lastScore = ranked[ranked.length - 1].score;
+    for (let i = ranked.length - 1; i >= 0; i--) {
+      if (ranked[i].score === lastScore) {
+        lastPlaceCounts[ranked[i].name]++;
+      } else {
+        break;
+      }
+    }
   }
 
   // Build forecast results
@@ -134,6 +146,7 @@ function aggregateResults(
       maxPossible,
       winPct: numSims > 0 ? (winCounts[name] / numSims) * 100 : 0,
       top3Pct: numSims > 0 ? (top3Counts[name] / numSims) * 100 : 0,
+      lastPlacePct: numSims > 0 ? (lastPlaceCounts[name] / numSims) * 100 : 0,
       medianScore,
       isContender: maxPossible >= leaderPoints,
       pathsToVictory: [],

@@ -181,7 +181,7 @@ function PlayerForecastCard({ forecast }: { forecast: ForecastResult }) {
         <div className="flex items-center gap-2 sm:gap-4 text-right">
           <StatPill label="Win" value={`${forecast.winPct.toFixed(1)}%`} highlight={forecast.winPct > 20} />
           <StatPill label="Top 3" value={`${forecast.top3Pct.toFixed(0)}%`} />
-          <StatPill label="Median" value={`${forecast.medianScore}`} />
+          <StatPill label="Pitchers" value={`${forecast.lastPlacePct.toFixed(0)}%`} danger={forecast.lastPlacePct > 20} />
           <StatPill label="Max" value={`${forecast.maxPossible}`} />
         </div>
 
@@ -217,6 +217,9 @@ function PlayerForecastCard({ forecast }: { forecast: ForecastResult }) {
             <div>Current: <span className="font-medium text-gray-900">{forecast.currentPoints} pts</span></div>
             <div>Max Possible: <span className="font-medium text-gray-900">{forecast.maxPossible} pts</span></div>
             <div>Median Final: <span className="font-medium text-gray-900">{forecast.medianScore} pts</span></div>
+            <div>Buys Pitchers: <span className={`font-medium ${forecast.lastPlacePct > 20 ? "text-red-500" : "text-gray-900"}`}>
+              {forecast.lastPlacePct.toFixed(0)}%
+            </span></div>
             <div>Contender: <span className={`font-medium ${forecast.isContender ? "text-green-600" : "text-red-500"}`}>
               {forecast.isContender ? "Yes" : "Eliminated"}
             </span></div>
@@ -227,11 +230,11 @@ function PlayerForecastCard({ forecast }: { forecast: ForecastResult }) {
   );
 }
 
-function StatPill({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function StatPill({ label, value, highlight, danger }: { label: string; value: string; highlight?: boolean; danger?: boolean }) {
   return (
     <div className="hidden sm:block">
       <div className="text-[10px] text-gray-400">{label}</div>
-      <div className={`text-sm font-bold ${highlight ? "text-[#E8590C]" : "text-gray-900"}`}>
+      <div className={`text-sm font-bold ${danger ? "text-red-500" : highlight ? "text-[#E8590C]" : "text-gray-900"}`}>
         {value}
       </div>
     </div>

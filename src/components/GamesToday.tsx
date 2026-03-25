@@ -53,6 +53,36 @@ function isValidDateStr(s: string): boolean {
   return !isNaN(d.getTime()) && toLocalDateStr(d) === s;
 }
 
+// ── Tournament dates (only days with scheduled games) ────────────
+
+const TOURNAMENT_DATES = [
+  "2026-03-17", "2026-03-18",         // First Four
+  "2026-03-19", "2026-03-20",         // Round of 64
+  "2026-03-21", "2026-03-22",         // Round of 32
+  "2026-03-27", "2026-03-28",         // Sweet 16
+  "2026-03-29", "2026-03-30",         // Elite 8
+  "2026-04-04",                        // Final Four
+  "2026-04-06",                        // Championship
+];
+
+/** Find the next tournament date on or after the given date. */
+function nextTournamentDate(dateStr: string): string | null {
+  return TOURNAMENT_DATES.find((d) => d >= dateStr) ?? null;
+}
+
+/** Find the previous tournament date strictly before the given date. */
+function prevTournamentDate(dateStr: string): string | null {
+  for (let i = TOURNAMENT_DATES.length - 1; i >= 0; i--) {
+    if (TOURNAMENT_DATES[i] < dateStr) return TOURNAMENT_DATES[i];
+  }
+  return null;
+}
+
+/** Find the next tournament date strictly after the given date. */
+function nextTournamentDateAfter(dateStr: string): string | null {
+  return TOURNAMENT_DATES.find((d) => d > dateStr) ?? null;
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 interface GamesTodayProps {
@@ -66,10 +96,15 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
   // Today in ET (recomputed each render, self-corrects at midnight ET)
   const todayStr = getTodayET();
 
+  // Determine if today is a tournament date
+  const isTournamentDay = TOURNAMENT_DATES.includes(todayStr);
+
   // Read & validate ?date= param
   const rawDate = searchParams.get("date");
-  const selectedDate = rawDate && isValidDateStr(rawDate) ? rawDate : todayStr;
+  const defaultDate = isTournamentDay ? todayStr : (nextTournamentDate(todayStr) ?? todayStr);
+  const selectedDate = rawDate && isValidDateStr(rawDate) ? rawDate : defaultDate;
   const isToday = selectedDate === todayStr;
+  const isShowingFutureDate = selectedDate > todayStr;
   const isFutureOrToday = selectedDate >= todayStr;
 
   // ── Historical fetch state ──
@@ -98,12 +133,14 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
   );
 
   const goBack = useCallback(() => {
-    navigateToDate(shiftDate(selectedDate, -1));
+    const prev = prevTournamentDate(selectedDate);
+    if (prev) navigateToDate(prev);
   }, [selectedDate, navigateToDate]);
 
   const goForward = useCallback(() => {
-    if (!isFutureOrToday) navigateToDate(shiftDate(selectedDate, 1));
-  }, [selectedDate, isFutureOrToday, navigateToDate]);
+    const next = nextTournamentDateAfter(selectedDate);
+    if (next) navigateToDate(next);
+  }, [selectedDate, navigateToDate]);
 
   // ── Fetch historical games when not viewing today ──
   useEffect(() => {
@@ -184,8 +221,13 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={goBack}
-          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer text-gray-500 hover:text-gray-700"
-          aria-label="Previous day"
+          disabled={!prevTournamentDate(selectedDate)}
+          className={`p-1.5 rounded-lg transition-colors ${
+            !prevTournamentDate(selectedDate)
+              ? "text-gray-200 cursor-not-allowed"
+              : "hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700"
+          }`}
+          aria-label="Previous tournament day"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -193,7 +235,7 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
         </button>
 
         <button
-          onClick={() => navigateToDate(todayStr)}
+          onClick={() => navigateToDate(defaultDate)}
           className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
         >
           {formatDateNav(selectedDate)}
@@ -201,13 +243,13 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
 
         <button
           onClick={goForward}
-          disabled={isFutureOrToday}
+          disabled={!nextTournamentDateAfter(selectedDate)}
           className={`p-1.5 rounded-lg transition-colors ${
-            isFutureOrToday
+            !nextTournamentDateAfter(selectedDate)
               ? "text-gray-200 cursor-not-allowed"
               : "hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700"
           }`}
-          aria-label="Next day"
+          aria-label="Next tournament day"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -217,7 +259,7 @@ export default function GamesToday({ allGames }: GamesTodayProps) {
 
       {/* Section header */}
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        {isToday ? "Games Today" : "Games"}{" "}
+        {isToday ? "Games Today" : isShowingFutureDate ? "Next Games" : "Games"}{" "}
         <span className="text-gray-400 font-normal">
           {"\u2014"} {formatDateHeader(selectedDate)}
         </span>
