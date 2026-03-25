@@ -44,7 +44,6 @@ function verifyBracketMatchups(allGames: LiveGame[]): string[] {
   const mismatches: string[] = [];
   if (allGames.length === 0) return mismatches;
 
-  // Build expected R64 pairs from bracket.ts
   const expectedPairs: { region: string; team1: string; team2: string }[] = [];
   for (const region of REGIONS) {
     for (const [topSeed, bottomSeed] of SEED_MATCHUPS) {
@@ -56,7 +55,6 @@ function verifyBracketMatchups(allGames: LiveGame[]): string[] {
     }
   }
 
-  // Build a set of all teams in our bracket
   const allBracketTeams = new Set<string>();
   for (const region of REGIONS) {
     for (const seed in region.teams) {
@@ -64,12 +62,10 @@ function verifyBracketMatchups(allGames: LiveGame[]): string[] {
     }
   }
 
-  // Filter allGames to R64 games only (round 1, and both teams are in our bracket)
   const r64Games = allGames.filter((g) => {
     return g.round === 1 && allBracketTeams.has(g.team1) && allBracketTeams.has(g.team2);
   });
 
-  // For each R64 game from ESPN, check it matches an expected pair
   for (const game of r64Games) {
     const matchesExpected = expectedPairs.some(
       (p) =>
@@ -83,7 +79,6 @@ function verifyBracketMatchups(allGames: LiveGame[]): string[] {
     }
   }
 
-  // Also check: for each expected pair, is there a matching ESPN game?
   for (const pair of expectedPairs) {
     const hasGame = r64Games.some(
       (g) =>
@@ -91,7 +86,6 @@ function verifyBracketMatchups(allGames: LiveGame[]): string[] {
         (g.team1 === pair.team2 && g.team2 === pair.team1)
     );
     if (!hasGame && r64Games.length >= 16) {
-      // Only flag missing pairs if we have a meaningful number of R64 games
       mismatches.push(
         `${pair.region}: Expected ${pair.team1} vs ${pair.team2} but no matching ESPN game found`
       );
@@ -110,18 +104,16 @@ function getMatchupsForRegion(
 ): MatchupInfo[][] {
   const rounds: MatchupInfo[][] = [];
 
-  // Live game lookup
   const liveMap = new Map<string, LiveGame>();
   for (const g of liveGames) {
     liveMap.set(`${g.team1}-${g.team2}`, g);
     liveMap.set(`${g.team2}-${g.team1}`, g);
   }
 
-  // Round 1 matchups
+  // Round 1
   const r1: MatchupInfo[] = SEED_MATCHUPS.map(([topSeed, bottomSeed]) => {
     const topTeam = region.teams[topSeed];
     const bottomTeam = region.teams[bottomSeed];
-
     let winner: string | undefined;
     let topScore: number | undefined;
     let bottomScore: number | undefined;
@@ -170,7 +162,6 @@ function getMatchupsForRegion(
     for (let i = 0; i < prevRound.length; i += 2) {
       const topWinner = prevRound[i]?.winner || "";
       const bottomWinner = prevRound[i + 1]?.winner || "";
-
       let winner: string | undefined;
       let topScore: number | undefined;
       let bottomScore: number | undefined;
@@ -222,10 +213,14 @@ function getMatchupsForRegion(
   return rounds;
 }
 
+// ─── ESPN-Style Column Headers ──────────────────────────────────────────────
+
+const ROUND_HEADERS = ["1ST ROUND", "2ND ROUND", "SWEET 16", "ELITE 8"];
+
 // ─── TeamLine ───────────────────────────────────────────────────────────────
 
 function TeamLine({
-  teamName, seed, isWinner, isLoser, isLive, score,
+  teamName, seed, isWinner, isLoser, isLive, score, mirrored,
 }: {
   teamName: string;
   seed: number;
@@ -233,6 +228,7 @@ function TeamLine({
   isLoser: boolean;
   isLive: boolean;
   score?: number;
+  mirrored?: boolean;
 }) {
   const owner = getTeamOwner(teamName);
   const color = owner ? PLAYER_COLORS[owner] : "#d1d5db";
@@ -240,22 +236,28 @@ function TeamLine({
 
   return (
     <div
-      className={`flex items-center gap-1 px-1.5 py-0.5 text-[11px] leading-tight ${
-        isLoser ? "opacity-35 line-through" : isWinner ? "font-semibold" : isTBD ? "text-gray-300 italic" : ""
-      } ${isLive ? "live-pulse" : ""}`}
+      className={`flex items-center gap-1 px-1.5 py-[3px] text-[11px] leading-tight ${
+        mirrored ? "flex-row-reverse" : ""
+      } ${isLoser ? "opacity-35" : ""} ${isLive ? "live-pulse" : ""}`}
     >
-      <div
-        className="w-2 h-2 rounded-full shrink-0"
-        style={{ backgroundColor: color }}
-      />
-      <span className="text-gray-400 w-3 text-[10px]">
+      {/* Seed */}
+      <span className={`text-gray-400 text-[10px] shrink-0 ${mirrored ? "text-right" : ""}`} style={{ width: "14px" }}>
         {seed || ""}
       </span>
-      <span className={`truncate ${isWinner ? "text-gray-900" : "text-gray-700"}`}>
+      {/* Owner dot */}
+      <div
+        className="w-[6px] h-[6px] rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      {/* Team name */}
+      <span className={`truncate flex-1 ${
+        isWinner ? "font-bold text-gray-900" : isLoser ? "text-gray-400 line-through" : isTBD ? "text-gray-300 italic" : "text-gray-700"
+      } ${mirrored ? "text-right" : ""}`}>
         {teamName}
       </span>
+      {/* Score */}
       {score !== undefined && (
-        <span className="ml-auto text-gray-500 font-mono text-[10px]">
+        <span className={`font-mono text-[10px] shrink-0 ${isWinner ? "font-bold text-gray-900" : "text-gray-500"}`}>
           {score}
         </span>
       )}
@@ -266,10 +268,11 @@ function TeamLine({
 // ─── GameCell ────────────────────────────────────────────────────────────────
 
 function GameCell({
-  matchup, onClick,
+  matchup, onClick, mirrored,
 }: {
   matchup: MatchupInfo;
   onClick: () => void;
+  mirrored?: boolean;
 }) {
   const isTopWinner = matchup.winner === matchup.topTeam;
   const isBottomWinner = matchup.winner === matchup.bottomTeam;
@@ -278,17 +281,16 @@ function GameCell({
   return (
     <button
       onClick={onClick}
-      className={`w-full bg-white border rounded overflow-hidden hover:shadow-md transition-all text-left ${
+      className={`w-[140px] bg-white border rounded-sm overflow-hidden hover:shadow-md transition-shadow text-left ${
         matchup.isLive
-          ? "border-red-300 shadow-[0_0_6px_rgba(239,68,68,0.1)]"
+          ? "border-green-400 border-l-[3px]"
           : isTBDGame
           ? "border-dashed border-gray-200 bg-gray-50/50"
-          : "border-gray-200"
+          : "border-gray-300"
       }`}
-      style={{ minWidth: "130px", maxWidth: "180px" }}
     >
       {matchup.isLive && (
-        <div className="bg-red-50 text-red-600 text-[9px] text-center py-px font-medium">
+        <div className="bg-red-50 text-red-600 text-[8px] text-center py-px font-bold tracking-wider">
           LIVE
         </div>
       )}
@@ -300,6 +302,7 @@ function GameCell({
           isLoser={isBottomWinner}
           isLive={matchup.isLive}
           score={matchup.topScore}
+          mirrored={mirrored}
         />
         <TeamLine
           teamName={matchup.bottomTeam}
@@ -308,9 +311,236 @@ function GameCell({
           isLoser={isTopWinner}
           isLive={matchup.isLive}
           score={matchup.bottomScore}
+          mirrored={mirrored}
         />
       </div>
     </button>
+  );
+}
+
+// ─── Bracket Connectors ─────────────────────────────────────────────────────
+
+function ConnectorPair({ mirrored }: { mirrored?: boolean }) {
+  const borderSide = mirrored ? "border-l-2" : "border-r-2";
+  return (
+    <div className="flex flex-col" style={{ width: "16px" }}>
+      <div className={`flex-1 ${borderSide} border-t-2 border-gray-200`} />
+      <div className={`flex-1 ${borderSide} border-b-2 border-gray-200`} />
+    </div>
+  );
+}
+
+function HorizontalLine() {
+  return <div className="border-t-2 border-gray-200" style={{ width: "8px" }} />;
+}
+
+// ─── Region Bracket ─────────────────────────────────────────────────────────
+
+function RegionBracketView({
+  region, results, liveGames, onGameClick, mirrored,
+}: {
+  region: RegionBracket;
+  results: GameResult[];
+  liveGames: LiveGame[];
+  onGameClick: (m: MatchupInfo) => void;
+  mirrored?: boolean;
+}) {
+  const rounds = getMatchupsForRegion(region, results, liveGames);
+  const headers = mirrored ? [...ROUND_HEADERS].reverse() : ROUND_HEADERS;
+
+  // Build columns: for each round, a column of games, then connectors
+  // Left: R64 → conn → R32 → conn → S16 → conn → E8
+  // Right (mirrored): E8 → conn → S16 → conn → R32 → conn → R64
+  const orderedRounds = mirrored ? [...rounds].reverse() : rounds;
+
+  // Heights: R64=8 games, R32=4, S16=2, E8=1
+  // We use a fixed height container and justify-around to space things evenly
+
+  return (
+    <div className="flex flex-col">
+      {/* Region name */}
+      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+        <span className="w-1 h-3 bg-[#E8590C] rounded-full" />
+        {region.name}
+      </h3>
+
+      {/* Column headers */}
+      <div className={`flex ${mirrored ? "flex-row-reverse" : ""}`}>
+        {ROUND_HEADERS.map((h, i) => (
+          <div key={i} className="text-[9px] text-gray-400 font-semibold tracking-wider text-center" style={{ width: "140px" }}>
+            {h}
+          </div>
+        ))}
+      </div>
+
+      {/* Bracket body */}
+      <div className={`flex items-stretch ${mirrored ? "flex-row-reverse" : ""}`} style={{ height: "380px" }}>
+        {orderedRounds.map((roundMatchups, colIdx) => {
+          const actualRoundIdx = mirrored ? (orderedRounds.length - 1 - colIdx) : colIdx;
+          return (
+            <div key={colIdx} className="flex items-stretch">
+              {/* Round column */}
+              <div className="flex flex-col justify-around" style={{ width: "140px" }}>
+                {roundMatchups.map((m, i) => (
+                  <div key={i} className="flex items-center justify-center">
+                    <GameCell matchup={m} onClick={() => onGameClick(m)} mirrored={mirrored} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Connector column (not after the last round) */}
+              {colIdx < orderedRounds.length - 1 && (
+                <div className="flex flex-col justify-around">
+                  {Array.from({ length: roundMatchups.length / 2 }).map((_, i) => (
+                    <div key={i} className="flex items-center">
+                      {!mirrored && <HorizontalLine />}
+                      <ConnectorPair mirrored={mirrored} />
+                      {mirrored && <HorizontalLine />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Final Four Center Column ───────────────────────────────────────────────
+
+function CenterColumn({
+  results, liveGames, onGameClick,
+}: {
+  results: GameResult[];
+  liveGames: LiveGame[];
+  onGameClick: (m: MatchupInfo) => void;
+}) {
+  const regionRounds = REGIONS.map((r) => getMatchupsForRegion(r, results, liveGames));
+
+  const eastChamp = regionRounds[0]?.[3]?.[0]?.winner || "";
+  const southChamp = regionRounds[1]?.[3]?.[0]?.winner || "";
+  const midwestChamp = regionRounds[2]?.[3]?.[0]?.winner || "";
+  const westChamp = regionRounds[3]?.[3]?.[0]?.winner || "";
+
+  const liveMap = new Map<string, LiveGame>();
+  for (const g of liveGames) {
+    liveMap.set(`${g.team1}-${g.team2}`, g);
+    liveMap.set(`${g.team2}-${g.team1}`, g);
+  }
+
+  function buildFFMatchup(team1: string, team2: string): MatchupInfo {
+    let winner: string | undefined;
+    let topScore: number | undefined;
+    let bottomScore: number | undefined;
+    let isLive = false;
+
+    if (team1 && team2) {
+      for (const result of results) {
+        if (result.round === 5) {
+          if (
+            (result.winner === team1 && result.loser === team2) ||
+            (result.winner === team2 && result.loser === team1)
+          ) {
+            winner = result.winner;
+            topScore = result.winner === team1 ? result.winnerScore : result.loserScore;
+            bottomScore = result.winner === team2 ? result.winnerScore : result.loserScore;
+            break;
+          }
+        }
+      }
+      const live = liveMap.get(`${team1}-${team2}`);
+      if (live) {
+        isLive = true;
+        topScore = live.team1 === team1 ? live.score1 : live.score2;
+        bottomScore = live.team1 === team2 ? live.score1 : live.score2;
+      }
+    }
+
+    return {
+      topTeam: team1 || "TBD",
+      bottomTeam: team2 || "TBD",
+      topSeed: getTeamInfo(team1)?.seed || 0,
+      bottomSeed: getTeamInfo(team2)?.seed || 0,
+      winner, topScore, bottomScore, isLive,
+      round: 5, region: "Final Four",
+    };
+  }
+
+  // FF Game 1: East vs South
+  const ff1 = buildFFMatchup(eastChamp, southChamp);
+  // FF Game 2: Midwest vs West
+  const ff2 = buildFFMatchup(midwestChamp, westChamp);
+
+  // Championship
+  const ff1Winner = ff1.winner || "";
+  const ff2Winner = ff2.winner || "";
+  let champWinner: string | undefined;
+  let champTopScore: number | undefined;
+  let champBottomScore: number | undefined;
+  let champIsLive = false;
+
+  if (ff1Winner && ff2Winner) {
+    for (const result of results) {
+      if (result.round === 6) {
+        if (
+          (result.winner === ff1Winner && result.loser === ff2Winner) ||
+          (result.winner === ff2Winner && result.loser === ff1Winner)
+        ) {
+          champWinner = result.winner;
+          champTopScore = result.winner === ff1Winner ? result.winnerScore : result.loserScore;
+          champBottomScore = result.winner === ff2Winner ? result.winnerScore : result.loserScore;
+          break;
+        }
+      }
+    }
+    const live = liveMap.get(`${ff1Winner}-${ff2Winner}`);
+    if (live) {
+      champIsLive = true;
+      champTopScore = live.team1 === ff1Winner ? live.score1 : live.score2;
+      champBottomScore = live.team1 === ff2Winner ? live.score1 : live.score2;
+    }
+  }
+
+  const championship: MatchupInfo = {
+    topTeam: ff1Winner || "TBD",
+    bottomTeam: ff2Winner || "TBD",
+    topSeed: getTeamInfo(ff1Winner)?.seed || 0,
+    bottomSeed: getTeamInfo(ff2Winner)?.seed || 0,
+    winner: champWinner,
+    topScore: champTopScore,
+    bottomScore: champBottomScore,
+    isLive: champIsLive,
+    round: 6,
+    region: "Championship",
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-evenly h-full px-2" style={{ width: "180px" }}>
+      {/* FF Game 1: East vs South */}
+      <div className="text-center">
+        <div className="text-[9px] text-gray-400 font-semibold tracking-wider mb-1">FINAL FOUR</div>
+        <GameCell matchup={ff1} onClick={() => onGameClick(ff1)} />
+      </div>
+
+      {/* Championship */}
+      <div className="text-center">
+        <div className="text-[10px] text-[#E8590C] font-bold tracking-wider mb-1">CHAMPIONSHIP</div>
+        <GameCell matchup={championship} onClick={() => onGameClick(championship)} />
+        {champWinner && (
+          <div className="mt-1.5 text-xs font-bold text-[#E8590C] flex items-center justify-center gap-1">
+            {"\uD83C\uDFC6"} {champWinner}
+          </div>
+        )}
+      </div>
+
+      {/* FF Game 2: Midwest vs West */}
+      <div className="text-center">
+        <div className="text-[9px] text-gray-400 font-semibold tracking-wider mb-1">FINAL FOUR</div>
+        <GameCell matchup={ff2} onClick={() => onGameClick(ff2)} />
+      </div>
+    </div>
   );
 }
 
@@ -441,60 +671,80 @@ function GameModal({ matchup, onClose }: { matchup: MatchupInfo; onClose: () => 
   );
 }
 
-// ─── Region Quadrant ─────────────────────────────────────────────────────────
+// ─── Player Legend ───────────────────────────────────────────────────────────
 
-function RegionQuadrant({
-  region, results, liveGames, onGameClick,
-}: {
-  region: RegionBracket;
-  results: GameResult[];
-  liveGames: LiveGame[];
-  onGameClick: (m: MatchupInfo) => void;
-}) {
-  const rounds = getMatchupsForRegion(region, results, liveGames);
-  const roundLabels = ["R64", "R32", "S16", "E8"];
-
+function PlayerLegend() {
   return (
-    <div className="flex-1 min-w-0">
-      <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-1.5">
-        <span className="w-1 h-4 bg-[#E8590C] rounded-full" />
-        {region.name}
-      </h3>
-
-      <div className="flex gap-1">
-        {rounds.map((roundMatchups, colIdx) => (
-          <div
-            key={colIdx}
-            className="flex flex-col justify-around flex-1 gap-0.5"
-          >
-            <div className="text-[10px] text-gray-400 text-center mb-0.5 font-medium">
-              {roundLabels[colIdx]}
-            </div>
-            {roundMatchups.map((m, i) => (
-              <div key={i} className="flex-1 flex items-center justify-center px-0.5">
-                <GameCell matchup={m} onClick={() => onGameClick(m)} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-3 mb-3 p-2.5 bg-white border border-gray-200 rounded-lg">
+      {PLAYERS.map((p) => (
+        <div key={p.name} className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+          <span className="text-xs text-gray-500">{p.name}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ─── Final Four Center ───────────────────────────────────────────────────────
+// ─── Mobile Region Tabs ─────────────────────────────────────────────────────
 
-function FinalFourCenter({
+function MobileRegionTabs({
   results, liveGames, onGameClick,
 }: {
   results: GameResult[];
   liveGames: LiveGame[];
   onGameClick: (m: MatchupInfo) => void;
 }) {
-  // Get region champions from bracket data
+  const [activeTab, setActiveTab] = useState(0);
+  const regionOrder = [REGIONS[0], REGIONS[1], REGIONS[2], REGIONS[3]]; // East, South, Midwest, West
+
+  return (
+    <div>
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-200 mb-3">
+        {regionOrder.map((r, i) => (
+          <button
+            key={r.name}
+            onClick={() => setActiveTab(i)}
+            className={`flex-1 py-2 text-xs font-bold tracking-wider text-center transition-colors ${
+              activeTab === i
+                ? "text-[#E8590C] border-b-2 border-[#E8590C]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {r.name.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      {/* Active region bracket */}
+      <div className="overflow-x-auto pb-3">
+        <RegionBracketView
+          region={regionOrder[activeTab]}
+          results={results}
+          liveGames={liveGames}
+          onGameClick={onGameClick}
+          mirrored={false}
+        />
+      </div>
+
+      {/* Compact Final Four */}
+      <div className="border-t border-gray-200 pt-3 mt-2">
+        <CompactFinalFour results={results} liveGames={liveGames} onGameClick={onGameClick} />
+      </div>
+    </div>
+  );
+}
+
+function CompactFinalFour({
+  results, liveGames, onGameClick,
+}: {
+  results: GameResult[];
+  liveGames: LiveGame[];
+  onGameClick: (m: MatchupInfo) => void;
+}) {
   const regionRounds = REGIONS.map((r) => getMatchupsForRegion(r, results, liveGames));
 
-  // E8 winner = region champion (round index 3, single game)
   const eastChamp = regionRounds[0]?.[3]?.[0]?.winner || "";
   const southChamp = regionRounds[1]?.[3]?.[0]?.winner || "";
   const midwestChamp = regionRounds[2]?.[3]?.[0]?.winner || "";
@@ -506,7 +756,7 @@ function FinalFourCenter({
     liveMap.set(`${g.team2}-${g.team1}`, g);
   }
 
-  function buildFFMatchup(team1: string, team2: string, label: string): MatchupInfo {
+  function buildFFMatchup(team1: string, team2: string): MatchupInfo {
     let winner: string | undefined;
     let topScore: number | undefined;
     let bottomScore: number | undefined;
@@ -535,21 +785,16 @@ function FinalFourCenter({
     }
 
     return {
-      topTeam: team1 || "TBD",
-      bottomTeam: team2 || "TBD",
-      topSeed: getTeamInfo(team1)?.seed || 0,
-      bottomSeed: getTeamInfo(team2)?.seed || 0,
+      topTeam: team1 || "TBD", bottomTeam: team2 || "TBD",
+      topSeed: getTeamInfo(team1)?.seed || 0, bottomSeed: getTeamInfo(team2)?.seed || 0,
       winner, topScore, bottomScore, isLive,
       round: 5, region: "Final Four",
     };
   }
 
-  // FF Game 1: East vs South (REGIONS[0] vs REGIONS[1])
-  const ff1 = buildFFMatchup(eastChamp, southChamp, "East vs South");
-  // FF Game 2: Midwest vs West (REGIONS[2] vs REGIONS[3])
-  const ff2 = buildFFMatchup(midwestChamp, westChamp, "Midwest vs West");
+  const ff1 = buildFFMatchup(eastChamp, southChamp);
+  const ff2 = buildFFMatchup(midwestChamp, westChamp);
 
-  // Championship
   const ff1Winner = ff1.winner || "";
   const ff2Winner = ff2.winner || "";
   let champWinner: string | undefined;
@@ -580,59 +825,29 @@ function FinalFourCenter({
   }
 
   const championship: MatchupInfo = {
-    topTeam: ff1Winner || "TBD",
-    bottomTeam: ff2Winner || "TBD",
-    topSeed: getTeamInfo(ff1Winner)?.seed || 0,
-    bottomSeed: getTeamInfo(ff2Winner)?.seed || 0,
-    winner: champWinner,
-    topScore: champTopScore,
-    bottomScore: champBottomScore,
-    isLive: champIsLive,
-    round: 6,
-    region: "Championship",
+    topTeam: ff1Winner || "TBD", bottomTeam: ff2Winner || "TBD",
+    topSeed: getTeamInfo(ff1Winner)?.seed || 0, bottomSeed: getTeamInfo(ff2Winner)?.seed || 0,
+    winner: champWinner, topScore: champTopScore, bottomScore: champBottomScore,
+    isLive: champIsLive, round: 6, region: "Championship",
   };
 
   return (
-    <div className="flex items-center justify-center gap-4 py-3">
-      {/* FF Game 1 */}
+    <div className="flex items-start justify-center gap-3 flex-wrap">
       <div className="text-center">
-        <div className="text-[10px] text-gray-400 font-medium mb-1">Final Four</div>
-        <div className="text-[9px] text-gray-400 mb-0.5">East vs South</div>
+        <div className="text-[9px] text-gray-400 font-semibold tracking-wider mb-1">FINAL FOUR</div>
         <GameCell matchup={ff1} onClick={() => onGameClick(ff1)} />
       </div>
-
-      {/* Championship */}
       <div className="text-center">
-        <div className="text-[10px] text-[#E8590C] font-bold mb-1">Championship</div>
+        <div className="text-[10px] text-[#E8590C] font-bold tracking-wider mb-1">CHAMPIONSHIP</div>
         <GameCell matchup={championship} onClick={() => onGameClick(championship)} />
         {champWinner && (
-          <div className="mt-1 text-xs font-bold text-[#E8590C]">
-            {"\uD83C\uDFC6"} {champWinner}
-          </div>
+          <div className="mt-1 text-xs font-bold text-[#E8590C]">{"\uD83C\uDFC6"} {champWinner}</div>
         )}
       </div>
-
-      {/* FF Game 2 */}
       <div className="text-center">
-        <div className="text-[10px] text-gray-400 font-medium mb-1">Final Four</div>
-        <div className="text-[9px] text-gray-400 mb-0.5">Midwest vs West</div>
+        <div className="text-[9px] text-gray-400 font-semibold tracking-wider mb-1">FINAL FOUR</div>
         <GameCell matchup={ff2} onClick={() => onGameClick(ff2)} />
       </div>
-    </div>
-  );
-}
-
-// ─── Player Legend ───────────────────────────────────────────────────────────
-
-function PlayerLegend() {
-  return (
-    <div className="flex flex-wrap gap-3 mb-4 p-3 bg-white border border-gray-200 rounded-xl card-shadow">
-      {PLAYERS.map((p) => (
-        <div key={p.name} className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-          <span className="text-xs text-gray-500">{p.name}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -661,58 +876,76 @@ export default function BracketView({ results, liveGames, allGames }: BracketVie
               <div key={i}>{msg}</div>
             ))}
           </div>
-          <div className="text-xs mt-2 text-red-500">
-            The bracket data may need updating. Do not rely on hardcoded data — investigate the API structure.
-          </div>
         </div>
       )}
 
       <PlayerLegend />
 
-      {/* Bracket grid */}
-      <div className="overflow-x-auto pb-4">
-        <div style={{ minWidth: "1200px" }}>
-          {/* Top row: East | West */}
-          <div className="flex gap-4 flex-nowrap">
-            <RegionQuadrant
+      {/* Desktop: 2x2 grid with center column */}
+      <div className="hidden lg:block overflow-x-auto pb-4">
+        <div style={{ minWidth: "1400px" }} className="grid grid-cols-[1fr_auto_1fr] grid-rows-2">
+          {/* Row 1, Col 1: East (L→R) */}
+          <div className="p-2">
+            <RegionBracketView
               region={REGIONS[0]}
               results={results}
               liveGames={liveGames}
               onGameClick={setSelectedGame}
+              mirrored={false}
             />
-            <RegionQuadrant
+          </div>
+
+          {/* Row 1-2, Col 2: Center column (spans both rows) */}
+          <div className="row-span-2 flex items-stretch border-x border-gray-100">
+            <CenterColumn
+              results={results}
+              liveGames={liveGames}
+              onGameClick={setSelectedGame}
+            />
+          </div>
+
+          {/* Row 1, Col 3: West (R→L mirrored) */}
+          <div className="p-2">
+            <RegionBracketView
               region={REGIONS[3]}
               results={results}
               liveGames={liveGames}
               onGameClick={setSelectedGame}
+              mirrored={true}
             />
           </div>
 
-          {/* Center: Final Four + Championship */}
-          <div className="border-t border-b border-gray-200 my-2">
-            <FinalFourCenter
-              results={results}
-              liveGames={liveGames}
-              onGameClick={setSelectedGame}
-            />
-          </div>
-
-          {/* Bottom row: South | Midwest */}
-          <div className="flex gap-4 flex-nowrap">
-            <RegionQuadrant
+          {/* Row 2, Col 1: South (L→R) */}
+          <div className="p-2 border-t border-gray-100">
+            <RegionBracketView
               region={REGIONS[1]}
               results={results}
               liveGames={liveGames}
               onGameClick={setSelectedGame}
+              mirrored={false}
             />
-            <RegionQuadrant
+          </div>
+
+          {/* Row 2, Col 3: Midwest (R→L mirrored) */}
+          <div className="p-2 border-t border-gray-100">
+            <RegionBracketView
               region={REGIONS[2]}
               results={results}
               liveGames={liveGames}
               onGameClick={setSelectedGame}
+              mirrored={true}
             />
           </div>
         </div>
+      </div>
+
+      {/* Mobile: tab navigation */}
+      <div className="lg:hidden">
+        <MobileRegionTabs
+          results={results}
+          liveGames={liveGames}
+          onGameClick={setSelectedGame}
+        />
       </div>
 
       {selectedGame && (
