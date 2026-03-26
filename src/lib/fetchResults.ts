@@ -5,8 +5,8 @@ import { GameResult } from "@/data/teams";
 export const TOURNAMENT_DATES = [
   "20260319", "20260320", // Round of 64
   "20260321", "20260322", // Round of 32
-  "20260327", "20260328", // Sweet 16
-  "20260329", "20260330", // Elite 8
+  "20260326", "20260327", // Sweet 16
+  "20260328", "20260329", // Elite 8
   "20260404",             // Final Four
   "20260406",             // Championship
 ];

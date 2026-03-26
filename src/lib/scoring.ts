@@ -150,8 +150,8 @@ export function getCurrentRound(results: GameResult[]): number {
 const ROUND_SCHEDULE: { round: number; startDate: string; endDate: string }[] = [
   { round: 1, startDate: "2026-03-19", endDate: "2026-03-20" },
   { round: 2, startDate: "2026-03-21", endDate: "2026-03-22" },
-  { round: 3, startDate: "2026-03-27", endDate: "2026-03-28" },
-  { round: 4, startDate: "2026-03-29", endDate: "2026-03-30" },
+  { round: 3, startDate: "2026-03-26", endDate: "2026-03-27" },
+  { round: 4, startDate: "2026-03-28", endDate: "2026-03-29" },
   { round: 5, startDate: "2026-04-04", endDate: "2026-04-04" },
   { round: 6, startDate: "2026-04-06", endDate: "2026-04-06" },
 ];
